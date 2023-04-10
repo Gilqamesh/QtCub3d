@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "qabstracttablemodel": "cpp",
+        "vector": "cpp",
+        "qtableview": "cpp"
+    }
+}
