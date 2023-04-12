@@ -4,6 +4,7 @@
 
 #include "defs.h"
 #include <QAbstractTableModel>
+#include "camera.h"
 #include <vector>
 #include "v2.h"
 
@@ -13,24 +14,22 @@ public:
     enum class CubMap_ModelCell {
         Empty,
         Outside,
-        Player,
         Wall
     };
 
 public:
     CubMap_Model(const string& cub_file_path);
 
-    CubMap_ModelCell& operator()(u32 row, u32 col);
-
-private:
-    v2<r32> _player_p;
-    vector<vector<CubMap_ModelCell>> _map;
-
-    bool isIndexValid(u32 row, u32 col) const;
-
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual int columnCount(const QModelIndex &parent) const override;
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+
+public:
+    Camera _camera;
+    vector<vector<CubMap_ModelCell>> _map;
+
+    bool isIndexValid(u32 col, u32 row) const;
 };
 
 #endif // CUBMAP_MODEL_H

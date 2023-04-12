@@ -5,4 +5,3 @@ CubMap_View::CubMap_View()
 {
 
 }
-

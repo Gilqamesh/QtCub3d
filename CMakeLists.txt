@@ -20,6 +20,7 @@ set(PROJECT_SOURCES
         camera.h camera.cpp
         cubmap_model.h cubmap_model.cpp
         cubmap_view.h cubmap_view.cpp
+        cubmap_delegate.h cubmap_delegate.cpp
         v2.h
 )
 

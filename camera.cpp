@@ -14,9 +14,8 @@ void Camera::updateDirection(r32 dphi) {
     update();
 }
 
-void Camera::updatePosition(r32 dx, r32 dy) {
-    p.x += dx;
-    p.y += dy;
+void Camera::updatePosition(v2<r32> dp) {
+    p += dp;
 }
 
 void Camera::update(void) {

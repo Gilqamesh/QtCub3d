@@ -2,6 +2,12 @@
     "files.associations": {
         "qabstracttablemodel": "cpp",
         "vector": "cpp",
-        "qtableview": "cpp"
+        "qtableview": "cpp",
+        "qspinbox": "cpp",
+        "qstyleditemdelegate": "cpp",
+        "stdexcept": "cpp",
+        "qmenubar": "cpp",
+        "xtr1common": "cpp",
+        "chrono": "cpp"
     }
 }

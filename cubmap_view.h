@@ -1,4 +1,3 @@
-
 #ifndef CUBMAP_VIEW_H
 #define CUBMAP_VIEW_H
 
