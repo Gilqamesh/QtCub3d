@@ -18,7 +18,7 @@ public:
     };
 
 public:
-    CubMap_Model(const string& cub_file_path);
+    CubMap_Model(const std::string& cub_file_path);
 
     virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     virtual int columnCount(const QModelIndex &parent) const override;
@@ -27,7 +27,7 @@ public:
 
 public:
     Camera _camera;
-    vector<vector<CubMap_ModelCell>> _map;
+    std::vector<std::vector<CubMap_ModelCell>> _map;
 
     bool isIndexValid(u32 col, u32 row) const;
 };

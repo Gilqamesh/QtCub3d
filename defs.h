@@ -21,9 +21,10 @@ typedef double r64;
 
 #include <iostream>
 #include <iomanip>
-using namespace std;
-#define LOG(x) (cout << x << endl)
+#define LOG(x) (std::cout << x << std::endl)
 
 #include <string>
+
+#include <emmintrin.h>
 
 #endif // DEFS_H

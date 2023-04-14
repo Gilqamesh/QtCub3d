@@ -25,7 +25,7 @@ void CubMap_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
         case CubMap_Model::CubMap_ModelCell::Wall: {
             painter->fillRect(option.rect, Qt::blue);
         } break ;
-        default: throw runtime_error("not implemented");
+        default: throw std::runtime_error("not implemented");
     }
 
     painter->restore();

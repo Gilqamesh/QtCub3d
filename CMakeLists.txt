@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -21,6 +22,7 @@ set(PROJECT_SOURCES
         cubmap_model.h cubmap_model.cpp
         cubmap_view.h cubmap_view.cpp
         cubmap_delegate.h cubmap_delegate.cpp
+        render_pieces.h
         v2.h
 )
 
@@ -47,7 +49,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(Cub3d PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(Cub3d PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::OpenGLWidgets)
 
 set_target_properties(Cub3d PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

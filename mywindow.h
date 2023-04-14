@@ -1,4 +1,3 @@
-
 #ifndef MYWINDOW_H
 #define MYWINDOW_H
 
@@ -6,13 +5,17 @@
 #include <QMenu>
 #include <QCursor>
 #include <QPixmap>
+#include <QImage>
+#include <QWindow>
 
 #include <vector>
+#include <array>
 
 #include "defs.h"
 #include "camera.h"
 #include "cubmap_view.h"
 #include "cubmap_delegate.h"
+#include "render_pieces.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MyWindow; }
@@ -23,7 +26,7 @@ class MyWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MyWindow(const string& cubmap_path);
+    MyWindow(const std::string& cubmap_path);
     ~MyWindow();
 
     virtual void keyPressEvent(QKeyEvent* event) override;
@@ -42,6 +45,7 @@ private:
     CubMap_Delegate* cubmap_delegate;
     QMenu* cubmap_editor;
     QCursor cursor;
+    QImage framebuffer;
     bool is_alive;
 
     bool is_cursor_free;
@@ -50,20 +54,19 @@ private:
     bool is_a_down;
     bool is_d_down;
 
-    enum class WallTexId {
-        North,
-        South,
-        West,
-        East,
+    std::array<QPixmap, static_cast<u32>(WallTexId::SIZE)> wall_textures;
+    std::vector<wall_piece> wall_pieces_pushbuffer;
 
-        SIZE
-    };
-    QPixmap wall_textures[static_cast<u32>(WallTexId::SIZE)];
+    QImage floor_tex;
+    std::vector<floor_piece> floor_pieces_pushbuffer;
+
+    QImage ceiling_tex;
+    std::vector<ceiling_piece> ceiling_pieces_pushbuffer;
 
 private:
-
-    void drawFloor(QPainter& painter);
-    void drawWall(QPainter& painter);
+    void updateFloor();
+    void updateWall();
+    void render();
 
     bool isPWalkable(u32 x, u32 y);
     void updatePosition(r32 dt);
