@@ -15,7 +15,6 @@
 #include "camera.h"
 #include "cubmap_view.h"
 #include "cubmap_delegate.h"
-#include "render_pieces.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MyWindow; }
@@ -46,6 +45,7 @@ private:
     QMenu* cubmap_editor;
     QCursor cursor;
     QImage framebuffer;
+    QImage framebuffer_rl;
     bool is_alive;
 
     bool is_cursor_free;
@@ -54,14 +54,17 @@ private:
     bool is_a_down;
     bool is_d_down;
 
-    std::array<QPixmap, static_cast<u32>(WallTexId::SIZE)> wall_textures;
-    std::vector<wall_piece> wall_pieces_pushbuffer;
+    enum class WallTexId {
+        North,
+        South,
+        West,
+        East,
 
+        SIZE
+    };
+    std::array<QImage, static_cast<u32>(WallTexId::SIZE)> wall_textures;
     QImage floor_tex;
-    std::vector<floor_piece> floor_pieces_pushbuffer;
-
     QImage ceiling_tex;
-    std::vector<ceiling_piece> ceiling_pieces_pushbuffer;
 
 private:
     void updateFloor();

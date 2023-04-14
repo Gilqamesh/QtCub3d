@@ -32,15 +32,23 @@ MyWindow::MyWindow(const std::string& cubmap_path)
     is_d_down = false;
 
     // texture loading
-    wall_textures[static_cast<u32>(WallTexId::North)] = QPixmap("../Cub3d/assets/North.jpg");
-    wall_textures[static_cast<u32>(WallTexId::South)] = QPixmap("../Cub3d/assets/South.jpg");
-    wall_textures[static_cast<u32>(WallTexId::West)] = QPixmap("../Cub3d/assets/West.jpg");
-    wall_textures[static_cast<u32>(WallTexId::East)] = QPixmap("../Cub3d/assets/East.jpg");
+    wall_textures[static_cast<u32>(WallTexId::North)] = QImage("../Cub3d/assets/North.jpg");
+    wall_textures[static_cast<u32>(WallTexId::South)] = QImage("../Cub3d/assets/South.jpg");
+    wall_textures[static_cast<u32>(WallTexId::West)] = QImage("../Cub3d/assets/West.jpg");
+    wall_textures[static_cast<u32>(WallTexId::East)] = QImage("../Cub3d/assets/East.jpg");
+    for (u32 wall_tex_id = 0; wall_tex_id < static_cast<u32>(WallTexId::SIZE); ++wall_tex_id) {
+        // note: rotate images for sequential access during wall casting
+        QTransform transform;
+        transform.rotate(90);
+        wall_textures[wall_tex_id] = wall_textures[wall_tex_id].transformed(transform);
+    }
     floor_tex = QImage("../Cub3d/assets/Floor.jpg");
     ceiling_tex = QImage("../Cub3d/assets/Ceiling.jpg");
 
+
     // framebuffer
-    framebuffer = QImage(width(), height(), QImage::Format_RGB32);
+    framebuffer = QImage(width(), height(), QImage::Format_ARGB32);
+    framebuffer_rl = QImage(height(), width(), QImage::Format_ARGB32);
 
     setCursor(cursor);
     QRect global_p = geometry();
@@ -119,8 +127,8 @@ void MyWindow::closeEvent(QCloseEvent* event) {
 }
 
 void MyWindow::paintEvent(QPaintEvent* event) {
-    render();
     cubmap_view->update();
+    render();
 }
 
 static int bitCount(i32 x) {
@@ -193,7 +201,7 @@ void MyWindow::updateFloor() {
         );
         tex_x += 4.0f * tex_step_x;
         tex_y += 4.0f * tex_step_y;
-        
+
         __m128 tex_x_m128_2 = _mm_set_ps(
             tex_x - (i32) tex_x,
             (tex_x + tex_step_x) - (i32) (tex_x + tex_step_x),
@@ -362,15 +370,15 @@ void MyWindow::updateFloor() {
 
             // u64 _outer_to_s = __rdtsc();
 
-            _mm_storeu_epi32(framebuffer_floor_scanline + col, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs, _MM_SHUFFLE(3, 2, 1, 0)), 4));
-            _mm_storeu_epi32(framebuffer_floor_scanline + col + 4, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs_2, _MM_SHUFFLE(3, 2, 1, 0)), 4));
-            _mm_storeu_epi32(framebuffer_floor_scanline + col + 8, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs_3, _MM_SHUFFLE(3, 2, 1, 0)), 4));
-            _mm_storeu_epi32(framebuffer_floor_scanline + col + 12, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs_4, _MM_SHUFFLE(3, 2, 1, 0)), 4));
+            _mm_storeu_epi32(framebuffer_floor_scanline + col, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs, _MM_SHUFFLE(0, 1, 2, 3)), 4));
+            _mm_storeu_epi32(framebuffer_floor_scanline + col + 4, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs_2, _MM_SHUFFLE(0, 1, 2, 3)), 4));
+            _mm_storeu_epi32(framebuffer_floor_scanline + col + 8, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs_3, _MM_SHUFFLE(0, 1, 2, 3)), 4));
+            _mm_storeu_epi32(framebuffer_floor_scanline + col + 12, _mm_i32gather_epi32((const int*) floor_text, _mm_shuffle_epi32(floor_xs_4, _MM_SHUFFLE(0, 1, 2, 3)), 4));
 
-            _mm_storeu_epi32(framebuffer_ceiling_scanline + col, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs, _MM_SHUFFLE(3, 2, 1, 0)), 4));
-            _mm_storeu_epi32(framebuffer_ceiling_scanline + col + 4, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs_2, _MM_SHUFFLE(3, 2, 1, 0)), 4));
-            _mm_storeu_epi32(framebuffer_ceiling_scanline + col + 8, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs_2, _MM_SHUFFLE(3, 2, 1, 0)), 4));
-            _mm_storeu_epi32(framebuffer_ceiling_scanline + col + 12, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs_4, _MM_SHUFFLE(3, 2, 1, 0)), 4));
+            _mm_storeu_epi32(framebuffer_ceiling_scanline + col, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs, _MM_SHUFFLE(0, 1, 2, 3)), 4));
+            _mm_storeu_epi32(framebuffer_ceiling_scanline + col + 4, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs_2, _MM_SHUFFLE(0, 1, 2, 3)), 4));
+            _mm_storeu_epi32(framebuffer_ceiling_scanline + col + 8, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs_3, _MM_SHUFFLE(0, 1, 2, 3)), 4));
+            _mm_storeu_epi32(framebuffer_ceiling_scanline + col + 12, _mm_i32gather_epi32((const int*) ceiling_text, _mm_shuffle_epi32(ceiling_xs_4, _MM_SHUFFLE(0, 1, 2, 3)), 4));
 
             // _outer_to += __rdtsc() - _outer_to_s;
         }
@@ -387,13 +395,18 @@ void MyWindow::updateWall() {
         Horizontal
     };
 
-    wall_pieces_pushbuffer.clear();
-    v2<i32> prev_wall_index(-1, -1);
-    WallTexId last_wall_tex_id;
-    v2<i32> last_bot_right;
-    r32 last_wall_tex_x;
-    for (u32 col = 0; col < (u32) width(); ++col) {
-        r32 camera_x = 2.0 * (r32) col / (r32) width() - 1.0f;
+    QRgb* framebuffer_bits = reinterpret_cast<QRgb*>(framebuffer_rl.bits());
+    v2<i32> framebuffer_bits_dims(framebuffer_rl.width(), framebuffer_rl.height());
+    v2<i32> dims(width(), height());
+
+    // u64 _inner_total = 0;
+    // u64 _outer_total = __rdtsc();
+
+    // note: clear alpha channel and do an alpha premultply essentially
+    memset(framebuffer_bits, 0, framebuffer_bits_dims.x * framebuffer_bits_dims.y * sizeof(*framebuffer_bits));
+
+    for (i32 col = 0; col < dims.x; ++col) {
+        r32 camera_x = 2.0 * (r32) col / (r32) dims.x - 1.0f;
         v2<r32> raydir = cubmap_model->_camera.dir + cubmap_model->_camera.plane * camera_x;
         v2<i32> map_p((i32) cubmap_model->_camera.p.x, (i32) cubmap_model->_camera.p.y);
 
@@ -447,10 +460,10 @@ void MyWindow::updateWall() {
         } else {
             perp_wall_dist = side_dist.y - delta_dist.y;
         }
-        r32 line_height = (i32) ((r32) height() / perp_wall_dist);
-        v2<i32> vertical_draw_interval_unclamped(
-            ((r32) height() - line_height) / 2.0f,
-            ((r32) height() + line_height) / 2.0f
+        r32 line_height = (i32) ((r32) dims.y / perp_wall_dist);
+        v2<i32> vertical_draw_interval_clamped(
+            clamp_value(0, (i32) (((r32) dims.y - line_height) / 2.0f), dims.y - 1),
+            clamp_value(0, (i32) (((r32) dims.y + line_height) / 2.0f), dims.y - 1)
         );
 
         WallTexId wall_tex_id;
@@ -467,64 +480,67 @@ void MyWindow::updateWall() {
                 wall_tex_id = WallTexId::West;
             }
         }
-
-        const QPixmap& wall_text = wall_textures[static_cast<u32>(wall_tex_id)];
-        r32 wall_x;
-        if (side == Side::Horizontal) {
-            wall_x = cubmap_model->_camera.p.y + perp_wall_dist * raydir.y;
-        } else {
-            wall_x = cubmap_model->_camera.p.x + perp_wall_dist * raydir.x;
-        }
-        wall_x -= floor(wall_x);
+        QImage& wall_text = wall_textures[static_cast<u32>(wall_tex_id)];
         v2<i32> text_dims(wall_text.width(), wall_text.height());
-        r32 wall_y = 0.0f;
-        if ((i32) line_height > height()) {
-            wall_y = (line_height - (r32) height()) / (2.0f * line_height);
+        assert(isPowOf2(text_dims.x) && isPowOf2(text_dims.y));
+        QRgb* wall_bits = reinterpret_cast<QRgb*>(wall_text.bits());
+
+        r32 wall_tex_x;
+        if (side == Side::Horizontal) {
+            wall_tex_x = cubmap_model->_camera.p.y + perp_wall_dist * raydir.y;
+        } else {
+            wall_tex_x = cubmap_model->_camera.p.x + perp_wall_dist * raydir.x;
         }
-        r32 wall_step = (r32) text_dims.y / line_height;
-        v2<r32> tex_start_offset(
-            (i32) (wall_x * (r32) text_dims.x),
-            (i32) (wall_y * (r32) text_dims.y)
-        );
+        wall_tex_x -= floor(wall_tex_x);
+
+        r32 tex_step = (r32) text_dims.y / line_height;
+	    r32 tex_p = (vertical_draw_interval_clamped.x + (line_height - (r32) dims.y) / 2.0f) * tex_step;
+
+        i32 tex_start_offset_x = wall_tex_x * (r32) text_dims.x;
         if ((side == Side::Horizontal && raydir.x > 0.0f) ||
             (side == Side::Vertical && raydir.y < 0.0f)
         ) {
-            tex_start_offset.x = (r32) text_dims.x - tex_start_offset.x - 1.0f;
+            tex_start_offset_x = text_dims.x - tex_start_offset_x - 1;
         }
 
-        if (prev_wall_index.x == -1 && prev_wall_index.y == -1) {
-            prev_wall_index = map_p;
-            wall_piece wp;
-            wp.top_left = v2<i32>(col, vertical_draw_interval_unclamped.y);
-            wp.bot_right = v2<i32>(-1, -1);
-            wp.wall_text_interval_x.x = tex_start_offset.x;
-            wp.wall_text_interval_x.y = tex_start_offset.y;
-            // top_left
-            wall_pieces_pushbuffer.push_back(wp);
-        } else if (!(prev_wall_index.x == map_p.x && prev_wall_index.y == map_p.y && last_wall_tex_id == wall_tex_id)) {
-            prev_wall_index = map_p;
-            // bot right + tex
-            wall_pieces_pushbuffer.back().bot_right = last_bot_right;
-            wall_pieces_pushbuffer.back().wall_tex_id = last_wall_tex_id;
-            wall_pieces_pushbuffer.back().wall_text_interval_x.y = last_wall_tex_x;
-            // start new
-            wall_pieces_pushbuffer.push_back(wall_piece());
-            wall_pieces_pushbuffer.back().top_left = v2<i32>(col, vertical_draw_interval_unclamped.y);
-            wall_pieces_pushbuffer.back().bot_right = v2<i32>(-1, -1);
-            wall_pieces_pushbuffer.back().wall_text_interval_x.x = tex_start_offset.x;
+        // u64 _inner_sub = __rdtsc();
+        i32 vertical_stripe_length = vertical_draw_interval_clamped.y - vertical_draw_interval_clamped.x;
+        i32 row = 0;
+        for (; row < vertical_stripe_length - 8; row += 8) {
+            i32 cur_row = row + vertical_draw_interval_clamped.x;
+
+            i32 tex_start_offset_y = ((i32) tex_p) & (text_dims.y - 1);
+            i32 tex_start_offset_y_2 = ((i32) (tex_p + tex_step)) & (text_dims.y - 1);
+            i32 tex_start_offset_y_3 = ((i32) (tex_p + 2.0f * tex_step)) & (text_dims.y - 1);
+            i32 tex_start_offset_y_4 = ((i32) (tex_p + 3.0f * tex_step)) & (text_dims.y - 1);
+            i32 tex_start_offset_y_5 = ((i32) (tex_p + 4.0f * tex_step)) & (text_dims.y - 1);
+            i32 tex_start_offset_y_6 = ((i32) (tex_p + 5.0f * tex_step)) & (text_dims.y - 1);
+            i32 tex_start_offset_y_7 = ((i32) (tex_p + 6.0f * tex_step)) & (text_dims.y - 1);
+            i32 tex_start_offset_y_8 = ((i32) (tex_p + 7.0f * tex_step)) & (text_dims.y - 1);
+            tex_p += 8.0f * tex_step;
+
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 1] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_2];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 2] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_3];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 3] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_4];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 4] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_5];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 5] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_6];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 6] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_7];
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row + 7] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_8];
         }
-        last_wall_tex_id = wall_tex_id;
-        last_bot_right = v2<i32>(col, vertical_draw_interval_unclamped.x);
-        last_wall_tex_x = tex_start_offset.x;
-        i32 debug = 0.0f;
-        ++debug;
+        for (; row < vertical_stripe_length; ++row) {
+            i32 cur_row = row + vertical_draw_interval_clamped.x;
+
+            i32 tex_start_offset_y = ((i32) tex_p) & (text_dims.y - 1);
+            tex_p += tex_step;
+
+            framebuffer_bits[col * framebuffer_bits_dims.x + cur_row] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
+        }
+        // _inner_total += __rdtsc() - _inner_sub;
     }
-    // last wall piece
-    if (wall_pieces_pushbuffer.back().bot_right.x == -1 && wall_pieces_pushbuffer.back().bot_right.y == -1) {
-        wall_pieces_pushbuffer.back().bot_right = last_bot_right;
-        wall_pieces_pushbuffer.back().wall_tex_id = last_wall_tex_id;
-        wall_pieces_pushbuffer.back().wall_text_interval_x.y = last_wall_tex_x;
-    }
+    // _outer_total = __rdtsc() - _outer_total;
+    // LOG("Cy(M) wall inner: " << _inner_total / 1000000.0);
+    // LOG("Cy(M) wall outer: " << _outer_total / 1000000.0);
 }
 
 bool MyWindow::isPWalkable(u32 x, u32 y) {
@@ -598,44 +614,17 @@ void MyWindow::updateOrientation() {
 }
 
 void MyWindow::render() {
+    u64 _rs = __rdtsc();
     QPainter painter(this);
     painter.drawImage(QPoint(0, 0), framebuffer);
-    for (const auto& wp : wall_pieces_pushbuffer) {
-        v2<i32> top_right(
-            wp.bot_right.x,
-            height() - wp.bot_right.y
-        );
-        v2<i32> bot_left(
-            wp.top_left.x,
-            height() - wp.top_left.y
-        );
-        const QPixmap& pixmap = wall_textures[static_cast<u32>(wp.wall_tex_id)];
-        painter.setPen(Qt::NoPen);
 
-        QPoint points[4] = {
-            QPoint(bot_left.x, bot_left.y),
-            QPoint(wp.bot_right.x, wp.bot_right.y),
-            QPoint(top_right.x, top_right.y),
-            QPoint(wp.top_left.x, wp.top_left.y)
-        };
-        QTransform brush_transform;
-        if (QTransform::quadToQuad(
-            QPolygon({
-                QPoint(wp.wall_text_interval_x.x, 0),
-                QPoint(wp.wall_text_interval_x.y, 0),
-                QPoint(wp.wall_text_interval_x.y, pixmap.height()),
-                QPoint(wp.wall_text_interval_x.x, pixmap.height())
-            }),
-            QPolygon({points[0], points[1], points[2], points[3]}),
-            brush_transform
-        ) == false) {
-            continue ;
-        }
-        QBrush brush(pixmap);
-        brush.setTransform(brush_transform);
-        painter.setBrush(brush);
-        painter.drawPolygon(points, 4, Qt::WindingFill);
-    }
+    painter.translate(width() / 2, height() / 2);
+    painter.rotate(-90.0);
+    painter.translate(-framebuffer_rl.width() / 2, -framebuffer_rl.height() / 2);
+    painter.drawImage(QPoint(0, 0), framebuffer_rl);
+    painter.resetTransform();
+
+    LOG("Cy(M) render: " << (__rdtsc() - _rs) / 1000000.0);
 }
 
 void MyWindow::updateAndRender(r32 dt) {
