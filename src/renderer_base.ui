@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MyWindow</class>
- <widget class="QMainWindow" name="MyWindow">
+ <class>Renderer_Base</class>
+ <widget class="QMainWindow" name="Renderer_Base">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MyWindow</string>
+   <string>Renderer_Base</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">

@@ -1,28 +1,31 @@
-#include "cubmap_delegate.h"
-#include <QPainter>
-#include "cubmap_model.h"
+#include "map_editor_delegate.h"
+#include "../map/map_model.h"
 
-CubMap_Delegate::CubMap_Delegate(QObject *parent)
+#include <QPainter>
+
+Map_Editor_Delegate::Map_Editor_Delegate(QObject *parent)
     : QStyledItemDelegate(parent) {
 }
 
-void CubMap_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
+void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     initStyleOption(const_cast<QStyleOptionViewItem*>(&option), index);
     painter->save();
 
     bool successful_conversion;
-    CubMap_Model::CubMap_ModelCell cell_value = static_cast<CubMap_Model::CubMap_ModelCell>(index.data(Qt::DisplayRole).toInt(&successful_conversion));
+    Map_Model::Cell cell_value = static_cast<Map_Model::Cell>(index.data(Qt::DisplayRole).toInt(&successful_conversion));
     if (successful_conversion == false) {
+        painter->restore();
+        LOG("successful_conversion == false in 'Map_Editor_Delegate::paint'");
         return ;
     }
     switch (cell_value) {
-        case CubMap_Model::CubMap_ModelCell::Empty: {
+        case Map_Model::Cell::Empty: {
             painter->fillRect(option.rect, Qt::white);
         } break ;
-        case CubMap_Model::CubMap_ModelCell::Outside: {
-            painter->fillRect(option.rect, Qt::black);
+        case Map_Model::Cell::Player: {
+            painter->fillRect(option.rect, Qt::red);
         } break ;
-        case CubMap_Model::CubMap_ModelCell::Wall: {
+        case Map_Model::Cell::Wall: {
             painter->fillRect(option.rect, Qt::blue);
         } break ;
         default: throw std::runtime_error("not implemented");
@@ -31,7 +34,7 @@ void CubMap_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
     painter->restore();
 }
 
-QWidget *CubMap_Delegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
+QWidget *Map_Editor_Delegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     QSpinBox* editor = new QSpinBox(parent);
     editor->setFrame(false);
     editor->setMinimum(0);
@@ -40,7 +43,7 @@ QWidget *CubMap_Delegate::createEditor(QWidget *parent, const QStyleOptionViewIt
     return editor;
 }
 
-void CubMap_Delegate::setEditorData(QWidget *editor, const QModelIndex &index) const {
+void Map_Editor_Delegate::setEditorData(QWidget *editor, const QModelIndex &index) const {
     bool successful_conversion;
     i32 cell_value = index.model()->data(index, Qt::EditRole).toInt(&successful_conversion);
     if (successful_conversion == false) {
@@ -51,7 +54,7 @@ void CubMap_Delegate::setEditorData(QWidget *editor, const QModelIndex &index) c
     spinBox->setValue(cell_value);
 }
 
-void CubMap_Delegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const {
+void Map_Editor_Delegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const {
     QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
     spinBox->interpretText();
     i32 value = spinBox->value();
@@ -59,6 +62,6 @@ void CubMap_Delegate::setModelData(QWidget *editor, QAbstractItemModel *model, c
     model->setData(index, value, Qt::EditRole);
 }
 
-void CubMap_Delegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const {
+void Map_Editor_Delegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const {
     editor->setGeometry(option.rect);
 }

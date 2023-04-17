@@ -14,15 +14,18 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mywindow.cpp mywindow.h mywindow.ui
-        defs.h
-        clamp.h
-        camera.h camera.cpp
-        cubmap_model.h cubmap_model.cpp
-        cubmap_view.h cubmap_view.cpp
-        cubmap_delegate.h cubmap_delegate.cpp
-        v2.h
+    src/main.cpp
+    src/renderer_widget.cpp src/renderer_widget.h src/renderer_base.ui
+    src/defs.h
+    src/clamp.h
+    src/camera.h src/camera.cpp
+    src/app/app_widget.cpp src/app/app_widget.cpp
+    src/mvcs/map/map_model.cpp src/mvcs/map/map_model.cpp
+    src/mvcs/map_editor/map_editor_mvc.h src/mvcs/map_editor/map_editor_mvc.cpp
+    src/mvcs/map_editor/map_editor_view.h src/mvcs/map_editor/map_editor_view.cpp
+    src/mvcs/map_editor/map_editor_delegate.h src/mvcs/map_editor/map_editor_delegate.cpp
+    src/mvcs/mvcs_defs.h
+    src/v2.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

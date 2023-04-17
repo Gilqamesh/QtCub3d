@@ -1,5 +1,5 @@
-#ifndef MYWINDOW_H
-#define MYWINDOW_H
+#ifndef RENDERER_WIDGET_H
+#define RENDERER_WIDGET_H
 
 #include <QMainWindow>
 #include <QMenu>
@@ -13,42 +13,52 @@
 
 #include "defs.h"
 #include "camera.h"
-#include "cubmap_view.h"
-#include "cubmap_delegate.h"
+#include "mvcs/map/map_model.h"
+
+#include "common/mywidget.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MyWindow; }
+namespace Ui { class Renderer_Base; }
 QT_END_NAMESPACE
 
-class MyWindow : public QMainWindow
-{
+class Renderer_Widget: public My_Widget {
+public:
+    Renderer_Widget(Map_Model* map_model);
+    virtual ~Renderer_Widget() = default;
+
+    virtual void updateAndRender(r32 dt) override;
+};
+
+class Renderer_Base: public QMainWindow {
     Q_OBJECT
 
 public:
-    MyWindow(const std::string& cubmap_path);
-    ~MyWindow();
+    Renderer_Base(Map_Model* map_model);
+    ~Renderer_Base();
 
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void keyReleaseEvent(QKeyEvent *event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;
     virtual void closeEvent(QCloseEvent* event) override;
     virtual void paintEvent(QPaintEvent* event) override;
+    virtual void mousePressEvent(QMouseEvent *event) override;
 
     void updateAndRender(r32 dt);
-    bool isAlive(void) const;
+    bool isAlive() const { return is_alive; }
 
 private:
-    Ui::MyWindow* ui;
-    CubMap_Model* cubmap_model;
-    CubMap_View* cubmap_view;
-    CubMap_Delegate* cubmap_delegate;
-    QMenu* cubmap_editor;
-    QCursor cursor;
-    QImage framebuffer;
-    QImage framebuffer_rl;
+    Ui::Renderer_Base* ui;
+    Map_Model* _map_model;
+    QImage floor_ceiling_framebuffer;
+    QImage wall_framebuffer;
     bool is_alive;
 
-    bool is_cursor_free;
+    enum class Mode {
+        Playing,
+        NotPlaying
+    };
+    Mode mode;
+
     bool is_w_down;
     bool is_s_down;
     bool is_a_down;
@@ -67,13 +77,13 @@ private:
     QImage ceiling_tex;
 
 private:
-    void updateFloor();
-    void updateWall();
-    void render();
-
     bool isPWalkable(u32 x, u32 y);
     void updatePosition(r32 dt);
     void updateOrientation();
+    void updateFloorAndCeiling();
+    void updateWall();
+
+    void setMode(Mode mode);
 };
 
-#endif // MYWINDOW_H
+#endif // RENDERER_WIDGET_H

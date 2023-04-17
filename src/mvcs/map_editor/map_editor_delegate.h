@@ -1,14 +1,14 @@
-#ifndef CUBMAP_DELEGATE_H
-#define CUBMAP_DELEGATE_H
+#ifndef MAP_EDITOR_DELEGATE_H
+#define MAP_EDITOR_DELEGATE_H
+
+#include "../mvcs_defs.h"
 
 #include <QSpinBox>
 #include <QStyledItemDelegate>
-#include "defs.h"
 
-class CubMap_Delegate : public QStyledItemDelegate
-{
+class Map_Editor_Delegate : public QStyledItemDelegate {
 public:
-    CubMap_Delegate(QObject *parent = nullptr);
+    Map_Editor_Delegate(QObject *parent = nullptr);
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
@@ -17,4 +17,4 @@ public:
     void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
 };
 
-#endif // CUBMAP_DELEGATE_H
+#endif // MAP_EDITOR_DELEGATE_H

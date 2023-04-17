@@ -27,4 +27,6 @@ typedef double r64;
 
 #include <emmintrin.h>
 
+#include "v2.h"
+
 #endif // DEFS_H
