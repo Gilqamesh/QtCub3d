@@ -3,18 +3,22 @@
 
 #include "../mvcs_defs.h"
 
+#include "../map/map_model.h"
+
 #include <QSpinBox>
 #include <QStyledItemDelegate>
 
-class Map_Editor_Delegate : public QStyledItemDelegate {
+class Map_Editor_Delegate : public QAbstractItemDelegate {
 public:
     Map_Editor_Delegate(QObject *parent = nullptr);
 
-    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
-    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    virtual QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+    bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index);
+
+private:
+    bool tryToConvert(const QModelIndex& index, Map_Model::Cell& value, i32 role) const;
 };
 
 #endif // MAP_EDITOR_DELEGATE_H

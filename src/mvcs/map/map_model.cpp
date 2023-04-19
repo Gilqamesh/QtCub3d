@@ -97,7 +97,7 @@ QVariant Map_Model::data(const QModelIndex &index, int role) const {
         return QVariant();
     }
 
-    if (role == Qt::DisplayRole) {
+    if (role == Qt::DisplayRole || role == Qt::EditRole) {
         return static_cast<i32>(cells[index.row()][index.column()]);
     } else {
         return QVariant();
@@ -116,6 +116,101 @@ QVariant Map_Model::headerData(int section, Qt::Orientation orientation, int rol
     }
 }
 
+Qt::ItemFlags Map_Model::flags(const QModelIndex &index) const {
+    if (!index.isValid()) {
+        return Qt::ItemIsEnabled;
+    }
+
+    return QAbstractItemModel::flags(index) | Qt::ItemIsEditable;
+}
+
+bool Map_Model::insertRows(int row, int count, const QModelIndex &parent) {
+    assert(row >= 0 && count >= 0);
+
+    if (row >= rowCount(parent)) {
+        row = rowCount(parent) - 1;
+    }
+
+    beginInsertRows(QModelIndex(), row, row + count - 1);
+    cells.insert(cells.begin() + row, count, std::vector<Cell>(columnCount(parent), Cell::Wall));
+    endInsertRows();
+
+    return true;
+}
+
+bool Map_Model::insertColumns(int column, int count, const QModelIndex &parent) {
+    assert(column >= 0 && count >= 0);
+
+    if (column > columnCount(parent)) {
+        column = columnCount(parent);
+    }
+    beginInsertColumns(QModelIndex(), column, column + count - 1);
+    for (auto& row: cells) {
+        row.insert(row.begin() + column, count, Cell::Wall);
+    }
+    endInsertColumns();
+
+    return true;
+}
+
+bool Map_Model::removeRows(int row, int count, const QModelIndex &parent) {
+    assert(row >= 0 && count >= 0);
+
+    if (rowCount(parent) == 0) {
+        return false;
+    }
+
+    if (row >= rowCount(parent)) {
+        row = rowCount(parent) - 1;
+    }
+    if (row + count >= rowCount(parent)) {
+        count = rowCount(parent) - 1 - row;
+    }
+    beginRemoveRows(QModelIndex(), row, row + count - 1);
+    cells.erase(cells.begin() + row, cells.begin() + row + count);
+    endRemoveRows();
+
+    return true;
+}
+
+bool Map_Model::removeColumns(int column, int count, const QModelIndex &parent) {
+    assert(column >= 0 && count >= 0);
+
+    if (columnCount(parent) == 0) {
+        return false;
+    }
+
+    if (column >= columnCount(parent)) {
+        column = columnCount(parent) - 1;
+    }
+    if (column + count >= columnCount(parent)) {
+        count = columnCount(parent) - 1 - column;
+    }
+
+    beginRemoveColumns(QModelIndex(), column, column + count - 1);
+    for (auto& row: cells) {
+        row.erase(row.begin() + column, row.begin() + column + count);
+    }
+    endRemoveColumns();
+
+    return true;
+}
+
+Map_Model::Cell Map_Model::getData(u32 col, u32 row) const {
+    return cells[row][col];
+}
+
+u32 Map_Model::rowCount() const {
+    return static_cast<u32>(cells.size());
+}
+
+u32 Map_Model::colCount() const {
+    if (rowCount() == 0) {
+        return 0;
+    }
+
+    return static_cast<u32>(cells[0].size());
+}
 
 bool Map_Model::isIndexValid(u32 col, u32 row) const {
     return row < cells.size() && col < cells[row].size();
@@ -151,11 +246,45 @@ bool Map_Model::setData(const QModelIndex &index, const QVariant &value, int rol
         return false;
     }
 
-    if (role == Qt::EditRole && cells[index.row()][index.column()] != cell_value) {
+    Map_Model::Cell& old_cell_value = cells[index.row()][index.column()];
+    if (role == Qt::EditRole && old_cell_value != cell_value) {
+
         cells[index.row()][index.column()] = cell_value;
-        emit layoutChanged();
-        return true;
+        if (isMapValid() == false) {
+            cells[index.row()][index.column()] = old_cell_value;
+
+            return false;
+        } else {
+            emit dataChanged(index, index, {role});
+
+            return true;
+        }
     }
 
     return false;
+}
+
+bool Map_Model::isMapValid() const {
+    if (cells.size() == 0 || cells[0].size() == 0) {
+        return false;
+    }
+
+    for (u32 col = 0; col < cells[0].size(); ++col) {
+        if (cells[0][col] != Cell::Wall) {
+            return false;
+        }
+        if (cells[cells.size() - 1][col] != Cell::Wall) {
+            return false;
+        }
+    }
+    for (u32 row = 1; row < cells.size() - 1; ++row) {
+        if (cells[row][0] != Cell::Wall) {
+            return false;
+        }
+        if (cells[row][cells[row].size() - 1] != Cell::Wall) {
+            return false;
+        }
+    }
+
+    return true;
 }

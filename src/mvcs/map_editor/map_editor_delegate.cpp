@@ -2,20 +2,24 @@
 #include "../map/map_model.h"
 
 #include <QPainter>
+#include <QEvent>
+
+bool Map_Editor_Delegate::tryToConvert(const QModelIndex& index, Map_Model::Cell& value, i32 role) const {
+    bool conversion_result;
+    value = static_cast<Map_Model::Cell>(index.data(Qt::DisplayRole).toInt(&conversion_result));
+    return conversion_result;
+}
 
 Map_Editor_Delegate::Map_Editor_Delegate(QObject *parent)
-    : QStyledItemDelegate(parent) {
+    : QAbstractItemDelegate(parent) {
 }
 
 void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
-    initStyleOption(const_cast<QStyleOptionViewItem*>(&option), index);
     painter->save();
 
-    bool successful_conversion;
-    Map_Model::Cell cell_value = static_cast<Map_Model::Cell>(index.data(Qt::DisplayRole).toInt(&successful_conversion));
-    if (successful_conversion == false) {
+    Map_Model::Cell cell_value;
+    if (tryToConvert(index, cell_value, static_cast<i32>(Qt::DisplayRole)) == false) {
         painter->restore();
-        LOG("successful_conversion == false in 'Map_Editor_Delegate::paint'");
         return ;
     }
     switch (cell_value) {
@@ -34,34 +38,27 @@ void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &o
     painter->restore();
 }
 
-QWidget *Map_Editor_Delegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
-    QSpinBox* editor = new QSpinBox(parent);
-    editor->setFrame(false);
-    editor->setMinimum(0);
-    editor->setMaximum(10);
-
-    return editor;
+QSize Map_Editor_Delegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const {
+    return option.decorationSize;
 }
 
-void Map_Editor_Delegate::setEditorData(QWidget *editor, const QModelIndex &index) const {
-    bool successful_conversion;
-    i32 cell_value = index.model()->data(index, Qt::EditRole).toInt(&successful_conversion);
-    if (successful_conversion == false) {
-        return ;
+bool Map_Editor_Delegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) {
+    switch (event->type()) {
+        case QEvent::MouseButtonDblClick: {
+            Map_Model::Cell cell_value;
+            if (tryToConvert(index, cell_value, Qt::EditRole) == false) {
+                LOG("Failed to convert in 'editorEvent' " << index.row() << " " << index.column());
+            }
+            if (cell_value == Map_Model::Cell::Empty) {
+                cell_value = Map_Model::Cell::Wall;
+            } else if (cell_value == Map_Model::Cell::Wall) {
+                cell_value = Map_Model::Cell::Empty;
+            }
+            reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), cell_value);
+            return true;
+        } break ;
+        default: {
+            return QAbstractItemDelegate::editorEvent(event, model, option, index);
+        }
     }
-
-    QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
-    spinBox->setValue(cell_value);
-}
-
-void Map_Editor_Delegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const {
-    QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
-    spinBox->interpretText();
-    i32 value = spinBox->value();
-
-    model->setData(index, value, Qt::EditRole);
-}
-
-void Map_Editor_Delegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const {
-    editor->setGeometry(option.rect);
 }

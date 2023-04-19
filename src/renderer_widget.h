@@ -15,26 +15,16 @@
 #include "camera.h"
 #include "mvcs/map/map_model.h"
 
-#include "common/mywidget.h"
-
 QT_BEGIN_NAMESPACE
-namespace Ui { class Renderer_Base; }
+namespace Ui { class Renderer_Widget; }
 QT_END_NAMESPACE
 
-class Renderer_Widget: public My_Widget {
-public:
-    Renderer_Widget(Map_Model* map_model);
-    virtual ~Renderer_Widget() = default;
-
-    virtual void updateAndRender(r32 dt) override;
-};
-
-class Renderer_Base: public QMainWindow {
+class Renderer_Widget: public QMainWindow {
     Q_OBJECT
 
 public:
-    Renderer_Base(Map_Model* map_model);
-    ~Renderer_Base();
+    Renderer_Widget(Map_Model* map_model);
+    ~Renderer_Widget();
 
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void keyReleaseEvent(QKeyEvent *event) override;
@@ -47,7 +37,7 @@ public:
     bool isAlive() const { return is_alive; }
 
 private:
-    Ui::Renderer_Base* ui;
+    Ui::Renderer_Widget* ui;
     Map_Model* _map_model;
     QImage floor_ceiling_framebuffer;
     QImage wall_framebuffer;

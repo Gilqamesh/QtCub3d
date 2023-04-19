@@ -3,25 +3,33 @@
 
 #include <QGridLayout>
 
-#include "../common/mywidget.h"
 #include "../defs.h"
 
-#include <unordered_set>
+#include "../mvcs/map_editor/map_editor_mvc.h"
+#include "../renderer_widget.h"
 
-class App_Widget: public My_Widget {
+class App_Widget: public QWidget {
 public:
-    App_Widget();
+    App_Widget(v2<u32> dims, Renderer_Widget* renderer, Map_Editor_Mvc* editor);
 
     void exec();
-    void addWidget(My_Widget* widget);
 
-    QGridLayout* getLayout();
-
-private:
-    std::unordered_set<My_Widget*> widgets;
+public slots:
+    void destroy();
+    bool isAlive() const;
 
 private:
-    virtual void updateAndRender(r32 dt) override;
+    void initializeAppLayout(v2<u32> dims);
+    void initializeMenuBar(QGridLayout* app_layout);
+
+private:
+    Renderer_Widget* _renderer;
+    Map_Editor_Mvc* _editor;
+
+    bool _is_alive;
+
+private:
+    void updateAndRender(r32 dt);
 };
 
 #endif

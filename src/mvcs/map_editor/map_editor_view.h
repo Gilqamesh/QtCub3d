@@ -5,9 +5,9 @@
 
 #include <QTableView>
 
-class Map_Editor_View : public QTableView {
+class Map_Editor_View: public QTableView {
 public:
     Map_Editor_View(QWidget *parent = nullptr);
 };
 
-#endif // MAP_EDITOR_VIEW_H
+#endif

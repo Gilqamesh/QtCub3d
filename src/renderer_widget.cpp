@@ -1,5 +1,5 @@
 #include "renderer_widget.h"
-#include "./ui_renderer_base.h"
+#include "./ui_renderer_widget.h"
 
 #include <QPainter>
 #include <QKeyEvent>
@@ -11,20 +11,7 @@
 #include <smmintrin.h>
 
 Renderer_Widget::Renderer_Widget(Map_Model* map_model)
-    : My_Widget(new Renderer_Base(map_model)) {
-}
-
-void Renderer_Widget::updateAndRender(r32 dt) {
-    Renderer_Base* renderer = reinterpret_cast<Renderer_Base*>(getWidget());
-    if (renderer->isAlive() == false) {
-        is_alive = false;
-    } else {
-        renderer->updateAndRender(dt);
-    }
-}
-
-Renderer_Base::Renderer_Base(Map_Model* map_model)
-    : ui(new Ui::Renderer_Base),
+    : ui(new Ui::Renderer_Widget),
     _map_model(map_model) {
     ui->setupUi(this);
 
@@ -37,18 +24,18 @@ Renderer_Base::Renderer_Base(Map_Model* map_model)
     // this->setBaseSize(1024, 768);
 
     // texture loading
-    wall_textures[static_cast<u32>(WallTexId::North)] = QImage("../Cub3d/assets/North.jpg");
-    wall_textures[static_cast<u32>(WallTexId::South)] = QImage("../Cub3d/assets/South.jpg");
-    wall_textures[static_cast<u32>(WallTexId::West)] = QImage("../Cub3d/assets/West.jpg");
-    wall_textures[static_cast<u32>(WallTexId::East)] = QImage("../Cub3d/assets/East.jpg");
+    wall_textures[static_cast<u32>(WallTexId::North)] = QImage("../assets/North.jpg");
+    wall_textures[static_cast<u32>(WallTexId::South)] = QImage("../assets/South.jpg");
+    wall_textures[static_cast<u32>(WallTexId::West)] = QImage("../assets/West.jpg");
+    wall_textures[static_cast<u32>(WallTexId::East)] = QImage("../assets/East.jpg");
     for (u32 wall_tex_id = 0; wall_tex_id < static_cast<u32>(WallTexId::SIZE); ++wall_tex_id) {
         // note: rotate images for sequential access during wall casting
         QTransform transform;
         transform.rotate(-90);
         wall_textures[wall_tex_id] = wall_textures[wall_tex_id].transformed(transform);
     }
-    floor_tex = QImage("../Cub3d/assets/Floor.jpg");
-    ceiling_tex = QImage("../Cub3d/assets/Ceiling.jpg");
+    floor_tex = QImage("../assets/Floor.jpg");
+    ceiling_tex = QImage("../assets/Ceiling.jpg");
 
     // todo: input
     is_w_down = false;
@@ -103,11 +90,11 @@ Renderer_Base::Renderer_Base(Map_Model* map_model)
     // cubmap_editor->addAction(cubmap_editor_open_act);
 }
 
-Renderer_Base::~Renderer_Base() {
+Renderer_Widget::~Renderer_Widget() {
     delete ui;
 }
 
-void Renderer_Base::setMode(Mode mode) {
+void Renderer_Widget::setMode(Mode mode) {
     this->mode = mode;
     switch (mode) {
         case Mode::Playing: {
@@ -123,11 +110,11 @@ void Renderer_Base::setMode(Mode mode) {
     }
 }
 
-void Renderer_Base::mousePressEvent(QMouseEvent *event) {
+void Renderer_Widget::mousePressEvent(QMouseEvent *event) {
     setMode(Mode::Playing);
 }
 
-void Renderer_Base::keyPressEvent(QKeyEvent *event) {
+void Renderer_Widget::keyPressEvent(QKeyEvent *event) {
     switch (event->key()) {
         case Qt::Key_Escape: {
             if (mode == Mode::Playing) {
@@ -159,7 +146,7 @@ void Renderer_Base::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-void Renderer_Base::keyReleaseEvent(QKeyEvent *event) {
+void Renderer_Widget::keyReleaseEvent(QKeyEvent *event) {
     switch (event->key()) {
         case Qt::Key_W: {
             is_w_down = false;
@@ -176,10 +163,10 @@ void Renderer_Base::keyReleaseEvent(QKeyEvent *event) {
     }
 }
 
-void Renderer_Base::mouseMoveEvent(QMouseEvent* event) {
+void Renderer_Widget::mouseMoveEvent(QMouseEvent* event) {
 }
 
-void Renderer_Base::closeEvent(QCloseEvent* event) {
+void Renderer_Widget::closeEvent(QCloseEvent* event) {
     this->is_alive = false;
 }
 
@@ -197,7 +184,6 @@ static void copyRotatedImage(QImage* dest, QImage* src) {
 
     constexpr u32 cache_line_size = 64;
     constexpr u32 block_size = cache_line_size / sizeof(QRgb);
-    u64 time_taken_total = 0;
     assert(
         dest_dims.x % block_size == 0 && dest_dims.y % block_size == 0 &&
         src_dims.x % block_size == 0 && src_dims.y % block_size == 0
@@ -237,17 +223,12 @@ static void copyRotatedImage(QImage* dest, QImage* src) {
             src_col += block_size;
             dest_row += block_size;
         }
-        time_taken_total += __rdtsc() - cur_cy;
         dest_col += block_size;
         src_row += block_size;
     }
-
-    LOG("Cy(M) time_taken_total: " << time_taken_total / 1000000.0);
 }
 
-void Renderer_Base::paintEvent(QPaintEvent* event) {
-    u64 _rs = __rdtsc();
-
+void Renderer_Widget::paintEvent(QPaintEvent* event) {
     copyRotatedImage(&floor_ceiling_framebuffer, &wall_framebuffer);
 
     QRect target_rec(0, 0, this->width(), this->height());
@@ -268,14 +249,12 @@ void Renderer_Base::paintEvent(QPaintEvent* event) {
         crosshair_dims.y, crosshair_dims.x,
         Qt::black
     );
-
-    LOG("Cy(M) render: " << (__rdtsc() - _rs) / 1000000.0);
 }
 
-bool Renderer_Base::isPWalkable(u32 x, u32 y) {
+bool Renderer_Widget::isPWalkable(u32 x, u32 y) {
     if (_map_model->isIndexValid(x, y) &&
-        _map_model->cells[y][x] == Map_Model::Cell::Empty ||
-        _map_model->cells[y][x] == Map_Model::Cell::Player
+        _map_model->getData(x, y) == Map_Model::Cell::Empty ||
+        _map_model->getData(x, y) == Map_Model::Cell::Player
     ) {
         return true;
     }
@@ -283,7 +262,7 @@ bool Renderer_Base::isPWalkable(u32 x, u32 y) {
     return false;
 }
 
-void Renderer_Base::updatePosition(r32 dt) {
+void Renderer_Widget::updatePosition(r32 dt) {
     v2<i32> old_map_p(
         _map_model->camera.p.x,
         _map_model->camera.p.y
@@ -337,7 +316,7 @@ void Renderer_Base::updatePosition(r32 dt) {
     );
 }
 
-void Renderer_Base::updateOrientation() {
+void Renderer_Widget::updateOrientation() {
     QPoint mouse_p = mapFromGlobal(cursor().pos());
     i32 half_screen_p_x = width() / 2.0f;
     r32 mouse_dx = mouse_p.x() - half_screen_p_x;
@@ -355,8 +334,8 @@ void Renderer_Base::updateOrientation() {
     _map_model->camera.updateDirection(mouse_dx);
 }
 
-void Renderer_Base::updateAndRender(r32 dt) {
-    LOG("dt(s): " << dt);
+void Renderer_Widget::updateAndRender(r32 dt) {
+    // LOG("dt(s): " << dt);
 
     if (mode == Mode::Playing) {
         updateOrientation();
@@ -378,17 +357,15 @@ static inline bool isPowOf2(i32 x) {
     return bitCount(x) == 1;
 }
 
-void Renderer_Base::updateFloorAndCeiling() {
+void Renderer_Widget::updateFloorAndCeiling() {
     QRgb* floor_text_raw = reinterpret_cast<QRgb*>(floor_tex.bits());
     QRgb* ceiling_text_raw = reinterpret_cast<QRgb*>(ceiling_tex.bits());
     QRgb* floor_ceiling_framebuffer_raw = reinterpret_cast<QRgb*>(floor_ceiling_framebuffer.bits());
     v2<i32> floor_tex_dims(floor_tex.width(), floor_tex.height());
     v2<i32> ceiling_tex_dims(ceiling_tex.width(), ceiling_tex.height());
     v2<i32> floor_ceiling_framebuffer_dims(floor_ceiling_framebuffer.width(), floor_ceiling_framebuffer.height()); 
-    // u64 _inner_t_s = 0;
 
     // note: assumptions taken
-    // assert(renderer_dims.x % 4 == 0 && "Screen width must be divisible by 4 for loop unrolling"); // could fallback to a worse routine I guess
     assert(
         isPowOf2(floor_tex_dims.x) &&
         isPowOf2(floor_tex_dims.y) &&
@@ -408,8 +385,6 @@ void Renderer_Base::updateFloorAndCeiling() {
     __m128i ceiling_tex_x_dim_m128i_minus_1 = _mm_set1_epi32(ceiling_tex_dims.x - 1);
     __m128i ceiling_tex_y_dim_m128i_minus_1 = _mm_set1_epi32(ceiling_tex_dims.y - 1);
 
-    // u64 _uft = __rdtsc();
-    // u64 _outer_to = 0;
     for (i32 row = floor_ceiling_framebuffer_dims.y - 1; row > floor_ceiling_framebuffer_dims.y / 2; --row) {
         r32 row_distance = ((r32) floor_ceiling_framebuffer_dims.y / 2.0f) / ((r32) row - (r32) floor_ceiling_framebuffer_dims.y / 2.0f);
         r32 tex_step_x = row_distance * 2.0f * _map_model->camera.plane.x / (r32) floor_ceiling_framebuffer_dims.x;
@@ -443,7 +418,6 @@ void Renderer_Base::updateFloorAndCeiling() {
 
         i32 col = 0;
         for (; col + 16 <= floor_ceiling_framebuffer_dims.x; col += 16) {
-            // u64 _inner_t_s_c = __rdtsc();
             __m128i floors[4];
             __m128i ceilings[4];
             for (u32 i = 0; i < 4; ++i) {
@@ -483,7 +457,6 @@ void Renderer_Base::updateFloorAndCeiling() {
                 _mm_storeu_epi32(
                     framebuffer_ceiling_scanline + col + i * 4, _mm_i32gather_epi32((const int*) ceiling_text_raw, _mm_shuffle_epi32(ceilings[i], _MM_SHUFFLE(0, 1, 2, 3)), 4));
             }
-            // _inner_t_s += __rdtsc() - _inner_t_s_c;
         }
 
         tex_x = _mm_cvtss_f32(tex_x_m128_4[3]);
@@ -499,13 +472,9 @@ void Renderer_Base::updateFloorAndCeiling() {
             framebuffer_ceiling_scanline[col] = ceiling_text_raw[ceiling];
         }
     }
-    // u64 _e = __rdtsc();
-    // LOG("Cy(M) _outer_to: " << _outer_to / 1000000.0);
-    // LOG("Cy(M) inner: " << _inner_t_s / 1000000.0);
-    // LOG("Cy(M) update floor: " << (_e - _uft) / 1000000.0);
 }
 
-void Renderer_Base::updateWall() {
+void Renderer_Widget::updateWall() {
         enum class Side {
         Vertical,
         Horizontal
@@ -515,16 +484,14 @@ void Renderer_Base::updateWall() {
     v2<i32> framebuffer_bits_dims(wall_framebuffer.width(), wall_framebuffer.height());
     v2<i32> renderer_dims(framebuffer_bits_dims.y, framebuffer_bits_dims.x);
 
-    // u64 _inner_total = 0;
-    // u64 _outer_total = __rdtsc();
-
     // note: clear alpha channel and do an alpha premultply essentially
     memset(floor_ceiling_framebuffer_raw, 0, framebuffer_bits_dims.x * framebuffer_bits_dims.y * sizeof(*floor_ceiling_framebuffer_raw));
 
     for (i32 col = 0; col < renderer_dims.x; ++col) {
         r32 camera_x = 2.0 * (r32) col / (r32) renderer_dims.x - 1.0f;
         v2<r32> raydir = _map_model->camera.dir + _map_model->camera.plane * camera_x;
-        v2<i32> map_p((i32) _map_model->camera.p.x, (i32) _map_model->camera.p.y);
+        v2<r32> camera_p = _map_model->camera.p;
+        v2<i32> map_p((i32) camera_p.x, (i32) camera_p.y);
 
         constexpr r32 EPSILON = 0.000001f;
         v2<r32> delta_dist;
@@ -543,20 +510,20 @@ void Renderer_Base::updateWall() {
         v2<r32> side_dist;
         if (raydir.x < 0.0f) {
             ray_step.x = -1;
-            side_dist.x = (_map_model->camera.p.x - map_p.x) * delta_dist.x;
+            side_dist.x = (camera_p.x - map_p.x) * delta_dist.x;
         } else {
             ray_step.x = 1;
-            side_dist.x = (map_p.x + 1.0f - _map_model->camera.p.x) * delta_dist.x;
+            side_dist.x = (map_p.x + 1.0f - camera_p.x) * delta_dist.x;
         }
         if (raydir.y < 0.0f) {
             ray_step.y = -1;
-            side_dist.y = (_map_model->camera.p.y - map_p.y) * delta_dist.y;
+            side_dist.y = (camera_p.y - map_p.y) * delta_dist.y;
         } else {
             ray_step.y = 1;
-            side_dist.y = (map_p.y + 1.0f - _map_model->camera.p.y) * delta_dist.y;
+            side_dist.y = (map_p.y + 1.0f - camera_p.y) * delta_dist.y;
         }
 
-        Map_Model::Cell hit = _map_model->cells[map_p.y][map_p.x];
+        Map_Model::Cell hit = _map_model->getData(map_p.x, map_p.y);
         Side side = Side::Horizontal;
         while (hit != Map_Model::Cell::Wall) {
             if (side_dist.x < side_dist.y) {
@@ -568,7 +535,7 @@ void Renderer_Base::updateWall() {
                 map_p.y += ray_step.y;
                 side = Side::Vertical;
             }
-            hit = _map_model->cells[map_p.y][map_p.x];
+            hit = _map_model->getData(map_p.x, map_p.y);
         }
         r32 perp_wall_dist;
         if (side == Side::Horizontal) {
@@ -603,9 +570,9 @@ void Renderer_Base::updateWall() {
 
         r32 wall_tex_x;
         if (side == Side::Horizontal) {
-            wall_tex_x = _map_model->camera.p.y + perp_wall_dist * raydir.y;
+            wall_tex_x = camera_p.y + perp_wall_dist * raydir.y;
         } else {
-            wall_tex_x = _map_model->camera.p.x + perp_wall_dist * raydir.x;
+            wall_tex_x = camera_p.x + perp_wall_dist * raydir.x;
         }
         wall_tex_x -= floor(wall_tex_x);
 
@@ -652,9 +619,5 @@ void Renderer_Base::updateWall() {
 
             floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
         }
-        // _inner_total += __rdtsc() - _inner_sub;
     }
-    // _outer_total = __rdtsc() - _outer_total;
-    // LOG("Cy(M) wall inner: " << _inner_total / 1000000.0);
-    // LOG("Cy(M) wall outer: " << _outer_total / 1000000.0);
 }

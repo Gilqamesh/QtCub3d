@@ -15,7 +15,7 @@ find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 
 set(PROJECT_SOURCES
     src/main.cpp
-    src/renderer_widget.cpp src/renderer_widget.h src/renderer_base.ui
+    src/renderer_widget.cpp src/renderer_widget.h src/renderer_widget.ui
     src/defs.h
     src/clamp.h
     src/camera.h src/camera.cpp
