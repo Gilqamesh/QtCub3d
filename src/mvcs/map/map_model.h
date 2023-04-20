@@ -53,26 +53,39 @@ public:
     bool setData(u32 col, u32 row, Map_Model::Cell value);
 
 public: // note: expose these for simplicity for now
+    class LoadedImageFromFile: public QImage {
+    public:
+        LoadedImageFromFile() = default;
+        LoadedImageFromFile(const std::string& filepath): QImage(filepath.c_str()), _filepath(filepath) {}
+        LoadedImageFromFile& operator=(const QImage& other) {
+            QImage::operator=(other);
+            return *this;
+        }
+        std::string getFilePath() const { return _filepath; }
+        void setFilePath(const std::string filepath) { _filepath = filepath; }
+    private:
+        std::string _filepath;
+    };
     Camera camera;
-    std::array<QImage, static_cast<u32>(WallTexId::SIZE)> wall_textures;
-    QImage floor_tex;
-    QImage ceiling_tex;
+    std::array<LoadedImageFromFile, static_cast<u32>(WallTexId::SIZE)> wall_textures;
+    LoadedImageFromFile floor_tex;
+    LoadedImageFromFile ceiling_tex;
 
 private:
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
     bool isMapEnclosed(const std::vector<std::vector<Cell>>& m) const;
     void loadTextures(
         std::ifstream& ifs,
-        std::array<QImage, static_cast<u32>(WallTexId::SIZE)>& cur_wall_textures,
-        QImage& cur_floor_tex,
-        QImage& cur_ceiling_tex
+        std::array<LoadedImageFromFile, static_cast<u32>(WallTexId::SIZE)>& cur_wall_textures,
+        LoadedImageFromFile& cur_floor_tex,
+        LoadedImageFromFile& cur_ceiling_tex
     );
 
     virtual int rowCount(const QModelIndex &parent) const override;
     virtual int columnCount(const QModelIndex &parent) const override;
 
-    Cell charToCell(char c) const;
-    char cellToChar(Cell cell) const;
+    Cell charToCell(char c, r32& orientation) const;
+    char cellToChar(Cell cell, r32 orientation) const;
 
 private:
     std::vector<std::vector<Cell>> cells;

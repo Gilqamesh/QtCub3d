@@ -154,9 +154,10 @@ void Renderer_Widget::updatePosition(r32 dt) {
         _map_model->camera.p.x,
         _map_model->camera.p.y
     );
+    r32 move_speed = 1.5f;
     if (input_state[static_cast<u32>(InputKey::KEY_W)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
-        v2<r32> dp = v2_normalize(_map_model->camera.dir) * dt;
+        v2<r32> dp = v2_normalize(_map_model->camera.dir) * move_speed * dt;
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
             _map_model->camera.updatePosition(v2<r32>(dp.x, 0.0f));
         }
@@ -166,7 +167,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
     }
     if (input_state[static_cast<u32>(InputKey::KEY_S)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
-        v2<r32> dp = -(v2_normalize(_map_model->camera.dir) * dt);
+        v2<r32> dp = -v2_normalize(_map_model->camera.dir) * move_speed * dt;
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
             _map_model->camera.updatePosition(v2<r32>(dp.x, 0.0f));
         }
@@ -176,7 +177,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
     }
     if (input_state[static_cast<u32>(InputKey::KEY_A)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
-        v2<r32> dp = -(v2_normalize(_map_model->camera.plane) * dt);
+        v2<r32> dp = -v2_normalize(_map_model->camera.plane) * move_speed * dt;
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
             _map_model->camera.updatePosition(v2<r32>(dp.x, 0.0f));
         }
@@ -186,7 +187,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
     }
     if (input_state[static_cast<u32>(InputKey::KEY_D)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
-        v2<r32> dp = v2_normalize(_map_model->camera.plane) * dt;
+        v2<r32> dp = v2_normalize(_map_model->camera.plane) * move_speed * dt;
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
             _map_model->camera.updatePosition(v2<r32>(dp.x, 0.0f));
         }
@@ -424,9 +425,9 @@ void Renderer_Widget::updateWall() {
         Map_Model::WallTexId wall_tex_id;
         if (side == Side::Vertical) {
             if (ray_step.y == 1) {
-                wall_tex_id = Map_Model::WallTexId::North;
-            } else {
                 wall_tex_id = Map_Model::WallTexId::South;
+            } else {
+                wall_tex_id = Map_Model::WallTexId::North;
             }
         } else {
             if (ray_step.x == 1) {
