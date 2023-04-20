@@ -161,6 +161,10 @@ void App_Widget::exec() {
     }
 }
 
+void App_Widget::closeEvent(QCloseEvent *event) {
+    destroy();
+}
+
 void App_Widget::destroy() {
     _is_alive = false;
 }

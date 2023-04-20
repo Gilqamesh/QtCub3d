@@ -6,10 +6,27 @@
 #include "../../camera.h"
 
 #include <QAbstractTableModel>
+#include <QImage>
 
 #include <vector>
 
 class Map_Model: public QAbstractTableModel {
+public:
+    enum class Cell {
+        Empty,
+        Player,
+        Wall
+    };
+
+    enum class WallTexId {
+        North,
+        South,
+        West,
+        East,
+
+        SIZE
+    };
+
 public:
     Map_Model(const std::string& cubmap_filepath);
 
@@ -23,12 +40,6 @@ public:
     virtual bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex());
 
 public:
-    enum class Cell {
-        Empty,
-        Player,
-        Wall
-    };
-
     void readMap(const std::string& cubmap_filepath);
     void saveMap(const std::string& cubmap_filepath);
 
@@ -36,16 +47,26 @@ public:
     u32 rowCount() const;
     u32 colCount() const;
 
-    Camera camera;
-
     bool isIndexValid(u32 col, u32 row) const;
     bool isPWalkable(u32 col, u32 row);
 
     bool setData(u32 col, u32 row, Map_Model::Cell value);
 
+public: // note: expose these for simplicity for now
+    Camera camera;
+    std::array<QImage, static_cast<u32>(WallTexId::SIZE)> wall_textures;
+    QImage floor_tex;
+    QImage ceiling_tex;
+
 private:
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
     bool isMapEnclosed(const std::vector<std::vector<Cell>>& m) const;
+    void loadTextures(
+        std::ifstream& ifs,
+        std::array<QImage, static_cast<u32>(WallTexId::SIZE)>& cur_wall_textures,
+        QImage& cur_floor_tex,
+        QImage& cur_ceiling_tex
+    );
 
     virtual int rowCount(const QModelIndex &parent) const override;
     virtual int columnCount(const QModelIndex &parent) const override;

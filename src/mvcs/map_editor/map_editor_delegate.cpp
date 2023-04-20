@@ -59,6 +59,7 @@ bool Map_Editor_Delegate::editorEvent(QEvent *event, QAbstractItemModel *model, 
                 } else if (new_cell_value == Map_Model::Cell::Wall) {
                     new_cell_value = Map_Model::Cell::Empty;
                 }
+                reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
                 is_valid = true;
             }
         } break ;
@@ -72,10 +73,11 @@ bool Map_Editor_Delegate::editorEvent(QEvent *event, QAbstractItemModel *model, 
             if (is_mouse_down && is_valid) {
                 return reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
             }
-            return true;
         } break ;
         default: {
             return QAbstractItemDelegate::editorEvent(event, model, option, index);
         }
     }
+
+    return true;
 }

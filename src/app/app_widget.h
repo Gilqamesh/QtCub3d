@@ -25,6 +25,9 @@ private:
     void initializeMenuBar(QGridLayout* app_layout);
 
 private:
+    void closeEvent(QCloseEvent *event);
+
+private:
     Map_Model* _map_model;
     Renderer_Widget *_renderer;
     Map_Editor_Mvc *_editor;

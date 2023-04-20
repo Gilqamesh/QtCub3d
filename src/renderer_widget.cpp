@@ -13,25 +13,8 @@ Renderer_Widget::Renderer_Widget(Map_Model* map_model)
 
     is_alive = true;
 
-    // texture loading
-    wall_textures[static_cast<u32>(WallTexId::North)] = QImage("../Cub3d/assets/North.jpg");
-    wall_textures[static_cast<u32>(WallTexId::South)] = QImage("../Cub3d/assets/South.jpg");
-    wall_textures[static_cast<u32>(WallTexId::West)] = QImage("../Cub3d/assets/West.jpg");
-    wall_textures[static_cast<u32>(WallTexId::East)] = QImage("../Cub3d/assets/East.jpg");
-    for (u32 wall_tex_id = 0; wall_tex_id < static_cast<u32>(WallTexId::SIZE); ++wall_tex_id) {
-        // note: rotate images for sequential access during wall casting
-        QTransform transform;
-        transform.rotate(-90);
-        wall_textures[wall_tex_id] = wall_textures[wall_tex_id].transformed(transform);
-    }
-    floor_tex = QImage("../Cub3d/assets/Floor.jpg");
-    ceiling_tex = QImage("../Cub3d/assets/Ceiling.jpg");
-
-    // todo: input
-    is_w_down = false;
-    is_s_down = false;
-    is_a_down = false;
-    is_d_down = false;
+    // note: input
+    clearInputState();
 
     v2<u32> framebuffer_dims(1024, 512);
     u32 framebuffer_size = framebuffer_dims.x * framebuffer_dims.y * sizeof(QRgb);
@@ -65,8 +48,15 @@ void Renderer_Widget::setMode(Mode mode) {
         case Mode::NotPlaying: {
             this->releaseKeyboard();
             this->releaseMouse();
+            clearInputState();
         } break ;
         default: throw std::runtime_error("not implemented");
+    }
+}
+
+void Renderer_Widget::clearInputState() {
+    for (u32 input_state_index = 0; input_state_index < sizeof(input_state) / sizeof(input_state[0]); ++input_state_index) {
+        input_state[input_state_index].is_down = false;
     }
 }
 
@@ -92,16 +82,16 @@ void Renderer_Widget::keyPressEvent(QKeyEvent *event) {
             }
         } break ;
         case Qt::Key_W: {
-            is_w_down = true;
+            input_state[static_cast<u32>(InputKey::KEY_W)].is_down = true;
         } break ;
         case Qt::Key_S: {
-            is_s_down = true;
+            input_state[static_cast<u32>(InputKey::KEY_S)].is_down = true;
         } break ;
         case Qt::Key_A: {
-            is_a_down = true;
+            input_state[static_cast<u32>(InputKey::KEY_A)].is_down = true;
         } break ;
         case Qt::Key_D: {
-            is_d_down = true;
+            input_state[static_cast<u32>(InputKey::KEY_D)].is_down = true;
         } break ;
     }
 }
@@ -109,16 +99,16 @@ void Renderer_Widget::keyPressEvent(QKeyEvent *event) {
 void Renderer_Widget::keyReleaseEvent(QKeyEvent *event) {
     switch (event->key()) {
         case Qt::Key_W: {
-            is_w_down = false;
+            input_state[static_cast<u32>(InputKey::KEY_W)].is_down = false;
         } break ;
         case Qt::Key_S: {
-            is_s_down = false;
+            input_state[static_cast<u32>(InputKey::KEY_S)].is_down = false;
         } break ;
         case Qt::Key_A: {
-            is_a_down = false;
+            input_state[static_cast<u32>(InputKey::KEY_A)].is_down = false;
         } break ;
         case Qt::Key_D: {
-            is_d_down = false;
+            input_state[static_cast<u32>(InputKey::KEY_D)].is_down = false;
         } break ;
     }
 }
@@ -164,7 +154,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
         _map_model->camera.p.x,
         _map_model->camera.p.y
     );
-    if (is_w_down) {
+    if (input_state[static_cast<u32>(InputKey::KEY_W)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
         v2<r32> dp = v2_normalize(_map_model->camera.dir) * dt;
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
@@ -174,7 +164,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
             _map_model->camera.updatePosition(v2<r32>(0.0f, dp.y));
         }
     }
-    if (is_s_down) {
+    if (input_state[static_cast<u32>(InputKey::KEY_S)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
         v2<r32> dp = -(v2_normalize(_map_model->camera.dir) * dt);
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
@@ -184,7 +174,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
             _map_model->camera.updatePosition(v2<r32>(0.0f, dp.y));
         }
     }
-    if (is_a_down) {
+    if (input_state[static_cast<u32>(InputKey::KEY_A)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
         v2<r32> dp = -(v2_normalize(_map_model->camera.plane) * dt);
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
@@ -194,7 +184,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
             _map_model->camera.updatePosition(v2<r32>(0.0f, dp.y));
         }
     }
-    if (is_d_down) {
+    if (input_state[static_cast<u32>(InputKey::KEY_D)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
         v2<r32> dp = v2_normalize(_map_model->camera.plane) * dt;
         if (isPWalkable(old_p.x + dp.x, old_p.y)) {
@@ -244,12 +234,12 @@ void Renderer_Widget::updateAndRender(r32 dt) {
 }
 
 void Renderer_Widget::updateFloorAndCeiling() {
-    QRgb* floor_text_raw = reinterpret_cast<QRgb*>(floor_tex.bits());
-    QRgb* ceiling_text_raw = reinterpret_cast<QRgb*>(ceiling_tex.bits());
+    QRgb* floor_text_raw = reinterpret_cast<QRgb*>(_map_model->floor_tex.bits());
+    QRgb* ceiling_text_raw = reinterpret_cast<QRgb*>(_map_model->ceiling_tex.bits());
     QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
     v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height()); 
-    v2<i32> floor_tex_dims(floor_tex.width(), floor_tex.height());
-    v2<i32> ceiling_tex_dims(ceiling_tex.width(), ceiling_tex.height());
+    v2<i32> floor_tex_dims(_map_model->floor_tex.width(), _map_model->floor_tex.height());
+    v2<i32> ceiling_tex_dims(_map_model->ceiling_tex.width(), _map_model->ceiling_tex.height());
 
     // note: assumptions taken
     assert(
@@ -369,7 +359,6 @@ void Renderer_Widget::updateWall() {
     QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
     v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height());
 
-    u64 tot_inner_ts = 0;
     for (i32 col = 0; col < framebuffer_dims.x; ++col) {
         r32 camera_x = 2.0 * (r32) col / (r32) framebuffer_dims.x - 1.0f;
         v2<r32> raydir = _map_model->camera.dir + _map_model->camera.plane * camera_x;
@@ -432,21 +421,21 @@ void Renderer_Widget::updateWall() {
             clamp_value(0, (i32) (((r32) framebuffer_dims.y + line_height) / 2.0f), framebuffer_dims.y - 1)
         );
 
-        WallTexId wall_tex_id;
+        Map_Model::WallTexId wall_tex_id;
         if (side == Side::Vertical) {
             if (ray_step.y == 1) {
-                wall_tex_id = WallTexId::North;
+                wall_tex_id = Map_Model::WallTexId::North;
             } else {
-                wall_tex_id = WallTexId::South;
+                wall_tex_id = Map_Model::WallTexId::South;
             }
         } else {
             if (ray_step.x == 1) {
-                wall_tex_id = WallTexId::East;
+                wall_tex_id = Map_Model::WallTexId::East;
             } else {
-                wall_tex_id = WallTexId::West;
+                wall_tex_id = Map_Model::WallTexId::West;
             }
         }
-        QImage& wall_text = wall_textures[static_cast<u32>(wall_tex_id)];
+        QImage& wall_text = _map_model->wall_textures[static_cast<u32>(wall_tex_id)];
         v2<i32> text_dims(wall_text.width(), wall_text.height());
         assert(isPowOf2(text_dims.x) && isPowOf2(text_dims.y));
         QRgb* wall_bits = reinterpret_cast<QRgb*>(wall_text.bits());
@@ -502,7 +491,5 @@ void Renderer_Widget::updateWall() {
 
             framebuffer_raw[cur_row * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
         }
-        tot_inner_ts += __rdtsc() - _inner_sub;
     }
-    LOG("Cy(M) tot_inner_ts: " << tot_inner_ts / 1000000.0);
 }

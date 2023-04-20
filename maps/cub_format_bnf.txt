@@ -1,0 +1,10 @@
+<file> ::= <line> <line> <line> <line> <line> <line> (<newline>)* <map-definition> (<newline>)*
+<line> ::= <texture-id> " " <texture-path> "\n"
+<texture-id> ::= "NO" | "SO" | "EA" | "WE" | "F" | "C"
+<texture-path> ::= <string>
+<map-definition> ::= <wall-row> <map-row>* <wall-row>
+<wall-row> ::= <wall-cell>+
+<map-row> ::= <wall-cell>* (<walkable-cell> | <player-cell>) <wall-cell>* "\n"
+<wall-cell> ::= "1" | " "
+<walkable-cell> ::= "0"
+<player-cell> ::= "N" | "S" | "W" | "E"

@@ -1,4 +1,5 @@
 #include "map_model.h"
+
 #include <fstream>
 
 #include <QMessageBox>
@@ -33,11 +34,36 @@ void Map_Model::readMap(const std::string& cubmap_filepath) {
         throw std::runtime_error("couldnt open file path for cubmap: '" + cubmap_filepath + "'");
     }
 
-    std::vector<std::vector<Cell>> cur_cells;
-    bool found_player = false;
+    std::array<QImage, static_cast<u32>(WallTexId::SIZE)> cur_wall_textures;
+    QImage cur_floor_tex;
+    QImage cur_ceiling_tex;
+    try {
+        loadTextures(ifs, cur_wall_textures, cur_floor_tex, cur_ceiling_tex);
+    } catch (const std::exception& err) {
+        throw std::runtime_error("'loadTextures': " + std::string(err.what()));
+    }
+
     std::string line;
+    if (!std::getline(ifs, line) || line != "") {
+        throw std::runtime_error("there must follow at least one newline after texture declarations");
+    }
+
+    std::vector<std::vector<Cell>> cur_cells;
+    Camera cur_camera;
+    bool found_player = false;
     u32 max_row_size = 0;
+    bool skipped_newlines = false;
     while (std::getline(ifs, line)) {
+        if (skipped_newlines == false) {
+            if (line != "") {
+                skipped_newlines = true;
+            } else {
+                continue ;
+            }
+        } else if (line == "") {
+            break ;
+        }
+
         std::vector<Cell> cur_row;
         if (line.size() > max_row_size) {
             max_row_size = (u32) line.size();
@@ -48,7 +74,8 @@ void Map_Model::readMap(const std::string& cubmap_filepath) {
                 if (found_player) {
                     throw std::runtime_error("found multiple players during parsing the map: " + cubmap_filepath);
                 }
-                camera = Camera(
+                // todo: starting orientation
+                cur_camera = Camera(
                     (r32) col + 0.5f,
                     (r32) cur_cells.size() + 0.5f,
                     0.0f
@@ -59,6 +86,7 @@ void Map_Model::readMap(const std::string& cubmap_filepath) {
         }
         cur_cells.push_back(cur_row);
     }
+    // note: make map square-like so that each row is the same size for simplicity, this assumption is baked in everywhere
     for (auto& row : cur_cells) {
         if (row.size() < max_row_size) {
             row.insert(row.end(), max_row_size - row.size(), Cell::Wall);
@@ -69,9 +97,22 @@ void Map_Model::readMap(const std::string& cubmap_filepath) {
     }
 
     if (isMapEnclosed(cur_cells) == false) {
-        throw std::runtime_error("map is not enclosed: " + cubmap_filepath);
+        throw std::runtime_error("map is not enclosed by walls: " + cubmap_filepath);
     }
+
+    // note: replace the old data with the new after successful parsing and map sanity checking
+    assert(sizeof(cur_wall_textures) / sizeof(cur_wall_textures[0]) == sizeof(wall_textures) / sizeof(wall_textures[0]));
     cells = cur_cells;
+    camera = cur_camera;
+    for (u32 wall_texture_index = 0; wall_texture_index < sizeof(cur_wall_textures) / sizeof(cur_wall_textures[0]); ++wall_texture_index) {
+        wall_textures[wall_texture_index] = cur_wall_textures[wall_texture_index];
+        // note: baked in assumption for the renderer for now: images are rotated by 90 for sequential access during wall casting
+        QTransform wall_transform;
+        wall_transform.rotate(-90);
+        wall_textures[wall_texture_index] = wall_textures[wall_texture_index].transformed(wall_transform);
+    }
+    floor_tex = cur_floor_tex;
+    ceiling_tex = cur_ceiling_tex;
 }
 
 void Map_Model::saveMap(const std::string& cubmap_filepath) {
@@ -339,4 +380,91 @@ bool Map_Model::isMapEnclosed(const std::vector<std::vector<Cell>>& m) const {
     }
 
     return true;
+}
+
+void Map_Model::loadTextures(
+    std::ifstream& ifs,
+    std::array<QImage, static_cast<u32>(WallTexId::SIZE)>& cur_wall_textures,
+    QImage& cur_floor_tex,
+    QImage& cur_ceiling_tex
+) {
+    std::string line;
+    u32 num_of_texture_files_to_parse = 0;
+    num_of_texture_files_to_parse += sizeof(cur_wall_textures) / sizeof(cur_wall_textures[0]); // walls
+    ++num_of_texture_files_to_parse; // floor
+    ++num_of_texture_files_to_parse; // ceil
+    while (num_of_texture_files_to_parse > 0) {
+        if (!std::getline(ifs, line)) {
+            throw std::runtime_error("unexpected end of file during texture loading");
+        }
+        u32 spaceIndex = line.find_first_of(' ');
+        if (spaceIndex == std::string::npos) {
+            throw std::runtime_error("space character not found after texture-id");
+        }
+        std::string textureId(line.begin(), line.begin() + spaceIndex);
+        std::string texturePath(line.begin() + spaceIndex + 1, line.end());
+        if (textureId == "NO") {
+            if (cur_wall_textures[static_cast<u32>(WallTexId::North)].isNull() == false) {
+                throw std::runtime_error("duplicate north wall texture");
+            }
+            cur_wall_textures[static_cast<u32>(WallTexId::North)] = QImage(texturePath.c_str());
+            if (cur_wall_textures[static_cast<u32>(WallTexId::North)].isNull()) {
+                throw std::runtime_error("failed to parse north wall texture from path: " + texturePath);
+            }
+            assert(num_of_texture_files_to_parse > 0);
+            --num_of_texture_files_to_parse;
+        } else if (textureId == "SO") {
+            if (cur_wall_textures[static_cast<u32>(WallTexId::South)].isNull() == false) {
+                throw std::runtime_error("duplicate south wall texture");
+            }
+            cur_wall_textures[static_cast<u32>(WallTexId::South)] = QImage(texturePath.c_str());
+            if (cur_wall_textures[static_cast<u32>(WallTexId::South)].isNull()) {
+                throw std::runtime_error("failed to open south wall texture from path: " + texturePath);
+            }
+            assert(num_of_texture_files_to_parse > 0);
+            --num_of_texture_files_to_parse;
+        } else if (textureId == "EA") {
+            if (cur_wall_textures[static_cast<u32>(WallTexId::East)].isNull() == false) {
+                throw std::runtime_error("duplicate east wall texture");
+            }
+            cur_wall_textures[static_cast<u32>(WallTexId::East)] = QImage(texturePath.c_str());
+            if (cur_wall_textures[static_cast<u32>(WallTexId::East)].isNull()) {
+                throw std::runtime_error("failed to open east wall texture from path: " + texturePath);
+            }
+            assert(num_of_texture_files_to_parse > 0);
+            --num_of_texture_files_to_parse;
+        } else if (textureId == "WE") {
+            if (cur_wall_textures[static_cast<u32>(WallTexId::West)].isNull() == false) {
+                throw std::runtime_error("duplicate west wall texture");
+            }
+            cur_wall_textures[static_cast<u32>(WallTexId::West)] = QImage(texturePath.c_str());
+            if (cur_wall_textures[static_cast<u32>(WallTexId::West)].isNull()) {
+                throw std::runtime_error("failed to open west wall texture from path: " + texturePath);
+            }
+            assert(num_of_texture_files_to_parse > 0);
+            --num_of_texture_files_to_parse;
+        } else if (textureId == "F") {
+            if (cur_floor_tex.isNull() == false) {
+                throw std::runtime_error("duplicate floor texture");
+            }
+            cur_floor_tex = QImage(texturePath.c_str());
+            if (cur_floor_tex.isNull()) {
+                throw std::runtime_error("failed to open floor texture from path: " + texturePath);
+            }
+            assert(num_of_texture_files_to_parse > 0);
+            --num_of_texture_files_to_parse;
+        } else if (textureId == "C") {
+            if (cur_ceiling_tex.isNull() == false) {
+                throw std::runtime_error("duplicate ceiling texture");
+            }
+            cur_ceiling_tex = QImage(texturePath.c_str());
+            if (cur_ceiling_tex.isNull()) {
+                throw std::runtime_error("failed to open ceiling texture from path: " + texturePath);
+            }
+            assert(num_of_texture_files_to_parse > 0);
+            --num_of_texture_files_to_parse;
+        } else {
+            throw std::runtime_error("unexpected texture-id: " + textureId);
+        }
+    }
 }

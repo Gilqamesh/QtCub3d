@@ -4,9 +4,7 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QCursor>
-#include <QPixmap>
 #include <QImage>
-#include <QWindow>
 
 #include "defs.h"
 #include "camera.h"
@@ -44,22 +42,17 @@ private:
     };
     Mode mode;
 
-    bool is_w_down;
-    bool is_s_down;
-    bool is_a_down;
-    bool is_d_down;
-
-    enum class WallTexId {
-        North,
-        South,
-        West,
-        East,
+    enum class InputKey {
+        KEY_W,
+        KEY_S,
+        KEY_A,
+        KEY_D,
 
         SIZE
     };
-    std::array<QImage, static_cast<u32>(WallTexId::SIZE)> wall_textures;
-    QImage floor_tex;
-    QImage ceiling_tex;
+    struct InputState {
+        bool is_down;
+    } input_state[static_cast<u32>(InputKey::SIZE)];
 
 private:
     bool isPWalkable(u32 x, u32 y);
@@ -69,6 +62,7 @@ private:
     void updateWall();
 
     void setMode(Mode mode);
+    void clearInputState();
     void copyRotatedImage(QImage* dest, QImage* src);
 };
 

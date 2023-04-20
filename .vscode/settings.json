@@ -88,6 +88,8 @@
         "deque": "cpp",
         "queue": "cpp",
         "qlayout": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "qimage": "cpp",
+        "unordered_set": "cpp"
     }
 }
