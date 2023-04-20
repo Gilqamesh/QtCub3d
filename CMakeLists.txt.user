@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 10.0.0, 2023-04-19T10:15:34. -->
+<!-- Written by QtCreator 10.0.0, 2023-04-20T20:31:01. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -110,7 +110,7 @@
 -DCMAKE_CXX_COMPILER:FILEPATH=%{Compiler:Executable:Cxx}
 -DCMAKE_CXX_FLAGS_INIT:STRING=%{Qt:QML_DEBUG_FLAG}</value>
     <value type="int" key="EnableQmlDebugging">0</value>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">C:\Users\Gilqamesh\Desktop\Projects\qt-projects\build-Cub3d-Desktop_Qt_6_5_0_MSVC2019_64bit-Debug</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">C:/Users/Gilqamesh/Desktop/Projects/qt-projects/build-Cub3d-Desktop_Qt_6_5_0_MSVC2019_64bit-Debug</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="QString" key="CMakeProjectManager.MakeStep.BuildPreset"></value>

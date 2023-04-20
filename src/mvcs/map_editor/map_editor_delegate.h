@@ -21,7 +21,7 @@ private:
     bool tryToConvert(const QModelIndex& index, Map_Model::Cell& value, i32 role) const;
 
     bool is_mouse_down;
-    bool is_valid;
+    bool is_cell_valid;
     Map_Model::Cell new_cell_value;
 };
 

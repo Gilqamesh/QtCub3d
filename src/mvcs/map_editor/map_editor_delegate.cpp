@@ -13,7 +13,7 @@ bool Map_Editor_Delegate::tryToConvert(const QModelIndex& index, Map_Model::Cell
 Map_Editor_Delegate::Map_Editor_Delegate(QObject *parent)
     : QAbstractItemDelegate(parent) {
     is_mouse_down = false;
-    is_valid = false;
+    is_cell_valid = false;
 }
 
 void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
@@ -50,17 +50,19 @@ bool Map_Editor_Delegate::editorEvent(QEvent *event, QAbstractItemModel *model, 
             QMouseEvent* m_event = dynamic_cast<QMouseEvent*>(event);
             if (m_event->buttons() & Qt::LeftButton) {
                 is_mouse_down = true;
+                is_cell_valid = false;
                 if (tryToConvert(index, new_cell_value, Qt::EditRole) == false) {
-                    is_valid = false;
                     return false;
                 }
                 if (new_cell_value == Map_Model::Cell::Empty) {
                     new_cell_value = Map_Model::Cell::Wall;
+                    is_cell_valid = true;
+                    reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
                 } else if (new_cell_value == Map_Model::Cell::Wall) {
                     new_cell_value = Map_Model::Cell::Empty;
+                    is_cell_valid = true;
+                    reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
                 }
-                reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
-                is_valid = true;
             }
         } break ;
         case QEvent::MouseButtonRelease: {
@@ -70,7 +72,10 @@ bool Map_Editor_Delegate::editorEvent(QEvent *event, QAbstractItemModel *model, 
             }
         } break ;
         case QEvent::MouseMove: {
-            if (is_mouse_down && is_valid) {
+            if (is_mouse_down && is_cell_valid) {
+                if (reinterpret_cast<Map_Model*>(model)->getData(index.column(), index.row()) == Map_Model::Cell::Player) {
+                    return false;
+                }
                 return reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
             }
         } break ;

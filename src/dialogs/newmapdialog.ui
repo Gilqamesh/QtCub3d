@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>NewMapDialog</class>
+ <widget class="QDialog" name="NewMapDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QLabel" name="title">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>9</y>
+     <width>128</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="lineWidth">
+    <number>1</number>
+   </property>
+   <property name="text">
+    <string>Dimensions of new map</string>
+   </property>
+   <property name="textFormat">
+    <enum>Qt::AutoText</enum>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
+   </property>
+   <property name="textInteractionFlags">
+    <set>Qt::LinksAccessibleByMouse</set>
+   </property>
+  </widget>
+  <widget class="QDialogButtonBox" name="dialogButtonBox">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>270</y>
+     <width>156</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   </property>
+  </widget>
+  <widget class="Line" name="titleHLineSeparator">
+   <property name="geometry">
+    <rect>
+     <x>9</x>
+     <y>50</y>
+     <width>382</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Horizontal</enum>
+   </property>
+  </widget>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>170</y>
+     <width>381</width>
+     <height>89</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="heightLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <item row="2" column="0">
+     <widget class="QLabel" name="minHeightLabelValue">
+      <property name="text">
+       <string>x</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QScrollBar" name="heightScrollBar">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="heightLabel">
+      <property name="text">
+       <string>Height</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QLabel" name="maxHeightLabelValue">
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="text">
+       <string>y</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="heightCurValue">
+      <property name="text">
+       <string>height_value</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>72</y>
+     <width>381</width>
+     <height>89</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="widthLayout">
+    <item row="2" column="0">
+     <widget class="QLabel" name="minWidthLabelValue">
+      <property name="text">
+       <string>x</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QScrollBar" name="widthScrollBar">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="widthLabel">
+      <property name="text">
+       <string>Width</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QLabel" name="maxWidthLabelValue">
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="text">
+       <string>y</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QLabel" name="widthCurValue">
+      <property name="text">
+       <string>width_value</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>dialogButtonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>NewMapDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>dialogButtonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>NewMapDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

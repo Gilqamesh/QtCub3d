@@ -40,6 +40,9 @@ public:
     virtual bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex());
 
 public:
+    // @brief keeps loaded texture files and defines an empty enclosed map with the supplied dimensions
+    void newMap(u32 width, u32 height);
+
     void readMap(const std::string& cubmap_filepath);
     void saveMap(const std::string& cubmap_filepath);
 

@@ -24,6 +24,33 @@ Map_Model::Map_Model(const std::string& cubmap_filepath) {
     readMap(cubmap_filepath);
 }
 
+void Map_Model::newMap(u32 width, u32 height) {
+    if (width < 3 || height < 3) {
+        throw std::runtime_error("can't have a map with less than 3 dimensions");
+    }
+
+    emit layoutAboutToBeChanged();
+
+    cells.clear();
+    cells = std::vector<std::vector<Cell>>(height, std::vector<Cell>(width, Cell::Empty));
+    camera = Camera(
+        (r32) width / 2.0f + 0.5f,
+        (r32) height / 2.0f + 0.5f,
+        camera.phi
+    );
+    for (u32 row = 1; row < cells.size() - 1; ++row) {
+        cells[row].back() = Cell::Wall;
+        cells[row].front() = Cell::Wall;
+    }
+    for (u32 col = 0; col < cells[0].size(); ++col) {
+        cells.back()[col] = Cell::Wall;
+        cells.front()[col] = Cell::Wall;
+    }
+    cells[(i32)camera.p.y][(i32)camera.p.x] = Cell::Player;
+
+    emit layoutChanged();
+}
+
 void Map_Model::readMap(const std::string& cubmap_filepath) {
     if (checkExtension(cubmap_filepath, "cub") == false) {
         throw std::runtime_error("file doesn't have .cub extension");
@@ -395,7 +422,6 @@ bool Map_Model::setData(const QModelIndex &index, const QVariant &value, int rol
 
     Map_Model::Cell old_cell_value = cells[index.row()][index.column()];
     if (role == Qt::EditRole && old_cell_value != cell_value) {
-
         cells[index.row()][index.column()] = cell_value;
         if (isMapEnclosed(cells) == false) {
             cells[index.row()][index.column()] = old_cell_value;

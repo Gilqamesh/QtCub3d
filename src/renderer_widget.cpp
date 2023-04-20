@@ -223,7 +223,7 @@ void Renderer_Widget::updateOrientation() {
 }
 
 void Renderer_Widget::updateAndRender(r32 dt) {
-    LOG("dt(s): " << dt);
+    // LOG("dt(s): " << dt);
 
     if (mode == Mode::Playing) {
         updateOrientation();
@@ -459,7 +459,6 @@ void Renderer_Widget::updateWall() {
             tex_start_offset_x = text_dims.x - tex_start_offset_x - 1;
         }
 
-        u64 _inner_sub = __rdtsc();
         i32 vertical_stripe_length = vertical_draw_interval_clamped.y - vertical_draw_interval_clamped.x;
         i32 row = 0;
         for (; row + 8 <= vertical_stripe_length; row += 8) {

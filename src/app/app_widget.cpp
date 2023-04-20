@@ -10,6 +10,8 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+#include "../dialogs/newmapdialog.h"
+
 static inline void setWidgetGeometry(const QWidget* parent, QWidget* child, v2<r32> normalized_top_left_p, v2<r32> normalized_bot_right_p) {
     QRect parent_rect = parent->geometry();
     assert(parent_rect.width() > 0 && parent_rect.height() > 0);
@@ -45,11 +47,23 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
         }
     );
 
-    QAction* quit_action = new QAction("Quit", file_menu);
-    file_menu->addAction(quit_action);
+    QAction* new_map_action = new QAction("New map", file_menu);
+    file_menu->addAction(new_map_action);
     connect(
-        quit_action, &QAction::triggered,
-        this, &App_Widget::destroy
+        new_map_action, &QAction::triggered,
+        this, [this]() {
+            v2<u32> newMapWidthInterval(3, 100);
+            v2<u32> newMapHeightInterval(3, 100);
+            NewMapDialog* dialog = new NewMapDialog(newMapWidthInterval, newMapHeightInterval, this);
+            dialog->setModal(true);
+            dialog->show();
+            connect(
+                dialog, &NewMapDialog::valuesChanged,
+                this, [this](i32 width, i32 height) {
+                    _map_model->newMap(width, height);
+                }
+            );
+        }
     );
 
     QAction* editor_open_action = new QAction("Open editor", file_menu);
@@ -102,6 +116,13 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
                 }
             }
         }
+    );
+
+    QAction* quit_action = new QAction("Quit", file_menu);
+    file_menu->addAction(quit_action);
+    connect(
+        quit_action, &QAction::triggered,
+        this, &App_Widget::destroy
     );
 }
 

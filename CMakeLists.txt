@@ -11,12 +11,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
-find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 
 set(PROJECT_SOURCES
     src/main.cpp
     src/utils.h
     src/renderer_widget.cpp src/renderer_widget.h src/renderer_widget.ui
+    src/dialogs/newmapdialog.h src/dialogs/newmapdialog.cpp src/dialogs/newmapdialog.ui
     src/defs.h
     src/camera.h src/camera.cpp
     src/app/app_widget.cpp src/app/app_widget.h
@@ -51,7 +51,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(Cub3d PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::OpenGLWidgets)
+target_link_libraries(Cub3d PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 set_target_properties(Cub3d PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
