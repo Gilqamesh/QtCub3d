@@ -8,9 +8,6 @@
 #include <QImage>
 #include <QWindow>
 
-#include <vector>
-#include <array>
-
 #include "defs.h"
 #include "camera.h"
 #include "mvcs/map/map_model.h"
@@ -28,7 +25,6 @@ public:
 
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void keyReleaseEvent(QKeyEvent *event) override;
-    virtual void mouseMoveEvent(QMouseEvent* event) override;
     virtual void closeEvent(QCloseEvent* event) override;
     virtual void paintEvent(QPaintEvent* event) override;
     virtual void mousePressEvent(QMouseEvent *event) override;
@@ -39,8 +35,7 @@ public:
 private:
     Ui::Renderer_Widget* ui;
     Map_Model* _map_model;
-    QImage floor_ceiling_framebuffer;
-    QImage wall_framebuffer;
+    QImage framebuffer;
     bool is_alive;
 
     enum class Mode {
@@ -74,6 +69,7 @@ private:
     void updateWall();
 
     void setMode(Mode mode);
+    void copyRotatedImage(QImage* dest, QImage* src);
 };
 
 #endif // RENDERER_WIDGET_H

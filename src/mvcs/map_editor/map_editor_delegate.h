@@ -19,6 +19,10 @@ public:
 
 private:
     bool tryToConvert(const QModelIndex& index, Map_Model::Cell& value, i32 role) const;
+
+    bool is_mouse_down;
+    bool is_valid;
+    Map_Model::Cell new_cell_value;
 };
 
 #endif // MAP_EDITOR_DELEGATE_H

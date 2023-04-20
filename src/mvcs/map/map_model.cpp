@@ -1,6 +1,8 @@
 #include "map_model.h"
 #include <fstream>
 
+#include <QMessageBox>
+
 static inline bool checkExtension(const std::string& str, const std::string& extension) {
     if (str.length() < extension.length() + 1) {
         return false;
@@ -18,6 +20,10 @@ static inline bool checkExtension(const std::string& str, const std::string& ext
 }
 
 Map_Model::Map_Model(const std::string& cubmap_filepath) {
+    readMap(cubmap_filepath);
+}
+
+void Map_Model::readMap(const std::string& cubmap_filepath) {
     if (checkExtension(cubmap_filepath, "cub") == false) {
         throw std::runtime_error("file doesn't have .cub extension");
     }
@@ -26,6 +32,8 @@ Map_Model::Map_Model(const std::string& cubmap_filepath) {
     if (!ifs) {
         throw std::runtime_error("couldnt open file path for cubmap: '" + cubmap_filepath + "'");
     }
+
+    std::vector<std::vector<Cell>> cur_cells;
     bool found_player = false;
     std::string line;
     u32 max_row_size = 0;
@@ -35,46 +43,48 @@ Map_Model::Map_Model(const std::string& cubmap_filepath) {
             max_row_size = (u32) line.size();
         }
         for (u32 col = 0; col < line.size(); ++col) {
-            char c = line[col];
-            switch (c) {
-                case '0': {
-                    cur_row.push_back(Cell::Empty);
-                } break ;
-                case '1': {
-                    cur_row.push_back(Cell::Wall);
-                } break ;
-                case 'N':
-                case 'S':
-                case 'W':
-                case 'E': {
-                    if (found_player) {
-                        throw std::runtime_error("found multiple players during parsing the map");
-                    }
-                    cur_row.push_back(Cell::Player);
-                    camera = Camera(
-                        (r32) col + 0.5f,
-                        (r32) cells.size() + 0.5f,
-                        0.0f
-                    );
-                    found_player = true;
-                } break ;
-                case ' ': {
-                    cur_row.push_back(Cell::Wall);
-                } break ;
-                default: throw std::runtime_error("unexpected character during parsing map: '" + std::to_string(c) + "'");
+            Cell cell = charToCell(line[col]);
+            if (cell == Cell::Player) {
+                if (found_player) {
+                    throw std::runtime_error("found multiple players during parsing the map: " + cubmap_filepath);
+                }
+                camera = Camera(
+                    (r32) col + 0.5f,
+                    (r32) cur_cells.size() + 0.5f,
+                    0.0f
+                );
+                found_player = true;
             }
+            cur_row.push_back(cell);
         }
-        cells.push_back(cur_row);
+        cur_cells.push_back(cur_row);
     }
-    for (auto& row : cells) {
+    for (auto& row : cur_cells) {
         if (row.size() < max_row_size) {
             row.insert(row.end(), max_row_size - row.size(), Cell::Wall);
         }
     }
     if (found_player == false) {
-        throw std::runtime_error("didn't find player during parsing the map");
+        throw std::runtime_error("didn't find player during parsing the map: " + cubmap_filepath);
     }
-    // todo: validate if closed, has exactly one player
+
+    if (isMapEnclosed(cur_cells) == false) {
+        throw std::runtime_error("map is not enclosed: " + cubmap_filepath);
+    }
+    cells = cur_cells;
+}
+
+void Map_Model::saveMap(const std::string& cubmap_filepath) {
+    std::ofstream savedFile(cubmap_filepath);
+    if (!savedFile) {
+        throw std::runtime_error("Unable to open file for writing");
+    }
+    for (u32 row = 0; row < rowCount(); ++row) {
+        for (u32 col = 0; col < colCount(); ++col) {
+            savedFile << cellToChar(getData(col, row));
+        }
+        savedFile << '\n';
+    }
 }
 
 int Map_Model::rowCount(const QModelIndex &parent) const {
@@ -86,6 +96,50 @@ int Map_Model::columnCount(const QModelIndex &parent) const {
         return 0;
     }
     return static_cast<i32>(cells[0].size());
+}
+
+Map_Model::Cell Map_Model::charToCell(char c) const {
+    switch (c) {
+        case '0': {
+            return Cell::Empty;
+        } break ;
+        case '1': {
+            return Cell::Wall;
+        } break ;
+        case 'N':
+        case 'S':
+        case 'W':
+        case 'E': {
+            return Cell::Player;
+        } break ;
+        case ' ': {
+            return Cell::Wall;
+        } break ;
+        default: {
+            throw std::runtime_error("unexpected character");
+        }
+    }
+
+    return Cell::Empty;
+}
+
+char Map_Model::cellToChar(Cell cell) const {
+    switch (cell) {
+        case Cell::Empty: {
+            return '0';
+        } break ;
+        case Cell::Wall: {
+            return '1';
+        } break ;
+        case Cell::Player: {
+            return 'N';
+        } break ;
+        default: {
+            throw std::runtime_error("unexpected cell value");
+        }
+    }
+
+    return '\0';
 }
 
 QVariant Map_Model::data(const QModelIndex &index, int role) const {
@@ -228,7 +282,7 @@ bool Map_Model::isPWalkable(u32 col, u32 row) {
 }
 
 bool Map_Model::setData(u32 col, u32 row, Map_Model::Cell value) {
-    return setData(createIndex(row, col), QVariant(static_cast<i32>(value)));
+    return setData(createIndex(row, col), QVariant(static_cast<i32>(value)), Qt::EditRole);
 }
 
 bool Map_Model::setData(const QModelIndex &index, const QVariant &value, int role) {
@@ -246,11 +300,11 @@ bool Map_Model::setData(const QModelIndex &index, const QVariant &value, int rol
         return false;
     }
 
-    Map_Model::Cell& old_cell_value = cells[index.row()][index.column()];
+    Map_Model::Cell old_cell_value = cells[index.row()][index.column()];
     if (role == Qt::EditRole && old_cell_value != cell_value) {
 
         cells[index.row()][index.column()] = cell_value;
-        if (isMapValid() == false) {
+        if (isMapEnclosed(cells) == false) {
             cells[index.row()][index.column()] = old_cell_value;
 
             return false;
@@ -261,27 +315,25 @@ bool Map_Model::setData(const QModelIndex &index, const QVariant &value, int rol
         }
     }
 
-    return false;
+    return true;
 }
 
-bool Map_Model::isMapValid() const {
-    if (cells.size() == 0 || cells[0].size() == 0) {
+bool Map_Model::isMapEnclosed(const std::vector<std::vector<Cell>>& m) const {
+    if (m.size() == 0 || m[0].size() == 0) {
         return false;
     }
 
-    for (u32 col = 0; col < cells[0].size(); ++col) {
-        if (cells[0][col] != Cell::Wall) {
-            return false;
-        }
-        if (cells[cells.size() - 1][col] != Cell::Wall) {
+    for (u32 col = 0; col < m[0].size(); ++col) {
+        if (m.back()[col] != Cell::Wall ||
+            m.front()[col] != Cell::Wall
+        ) {
             return false;
         }
     }
-    for (u32 row = 1; row < cells.size() - 1; ++row) {
-        if (cells[row][0] != Cell::Wall) {
-            return false;
-        }
-        if (cells[row][cells[row].size() - 1] != Cell::Wall) {
+    for (u32 row = 1; row < m.size() - 1; ++row) {
+        if (m[row].front() != Cell::Wall ||
+            m[row].back() != Cell::Wall
+        ) {
             return false;
         }
     }

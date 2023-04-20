@@ -4,11 +4,7 @@
 #include <QPainter>
 #include <QKeyEvent>
 
-#include "clamp.h"
-
-#include <emmintrin.h>
-#include <xmmintrin.h>
-#include <smmintrin.h>
+#include "utils.h"
 
 Renderer_Widget::Renderer_Widget(Map_Model* map_model)
     : ui(new Ui::Renderer_Widget),
@@ -17,25 +13,19 @@ Renderer_Widget::Renderer_Widget(Map_Model* map_model)
 
     is_alive = true;
 
-    // configure size
-    // this->setFixedSize(1024, 768);
-    // this->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    // this->setGeometry(0, 0, 1024, 768);
-    // this->setBaseSize(1024, 768);
-
     // texture loading
-    wall_textures[static_cast<u32>(WallTexId::North)] = QImage("../assets/North.jpg");
-    wall_textures[static_cast<u32>(WallTexId::South)] = QImage("../assets/South.jpg");
-    wall_textures[static_cast<u32>(WallTexId::West)] = QImage("../assets/West.jpg");
-    wall_textures[static_cast<u32>(WallTexId::East)] = QImage("../assets/East.jpg");
+    wall_textures[static_cast<u32>(WallTexId::North)] = QImage("../Cub3d/assets/North.jpg");
+    wall_textures[static_cast<u32>(WallTexId::South)] = QImage("../Cub3d/assets/South.jpg");
+    wall_textures[static_cast<u32>(WallTexId::West)] = QImage("../Cub3d/assets/West.jpg");
+    wall_textures[static_cast<u32>(WallTexId::East)] = QImage("../Cub3d/assets/East.jpg");
     for (u32 wall_tex_id = 0; wall_tex_id < static_cast<u32>(WallTexId::SIZE); ++wall_tex_id) {
         // note: rotate images for sequential access during wall casting
         QTransform transform;
         transform.rotate(-90);
         wall_textures[wall_tex_id] = wall_textures[wall_tex_id].transformed(transform);
     }
-    floor_tex = QImage("../assets/Floor.jpg");
-    ceiling_tex = QImage("../assets/Ceiling.jpg");
+    floor_tex = QImage("../Cub3d/assets/Floor.jpg");
+    ceiling_tex = QImage("../Cub3d/assets/Ceiling.jpg");
 
     // todo: input
     is_w_down = false;
@@ -43,51 +33,21 @@ Renderer_Widget::Renderer_Widget(Map_Model* map_model)
     is_a_down = false;
     is_d_down = false;
 
-    v2<u32> framebuffer_dims(512, 512);
-    // floor_ceiling_framebuffer = QImage(framebuffer_dims.x, framebuffer_dims.y, QImage::Format::Format_ARGB32);
-    // wall_framebuffer = QImage(framebuffer_dims.x, framebuffer_dims.y, QImage::Format::Format_ARGB32);
-    u32 floor_ceiling_framebuffer_data_size = framebuffer_dims.x * framebuffer_dims.y * sizeof(QRgb);
-    uchar* floor_ceiling_framebuffer_data = (uchar*) _aligned_malloc(floor_ceiling_framebuffer_data_size, 64);
-    floor_ceiling_framebuffer = QImage(
-        floor_ceiling_framebuffer_data,
+    v2<u32> framebuffer_dims(1024, 512);
+    u32 framebuffer_size = framebuffer_dims.x * framebuffer_dims.y * sizeof(QRgb);
+    uchar* framebuffer_data = (uchar*) myaligned_alloc(64, framebuffer_size);
+    framebuffer = QImage(
+        framebuffer_data,
         framebuffer_dims.x,
         framebuffer_dims.y,
         QImage::Format::Format_ARGB32,
         [](void* data) {
-            _aligned_free(data);
-        }, floor_ceiling_framebuffer_data
-    );
-    u32 wall_framebuffer_framebuffer_data_size = framebuffer_dims.y * framebuffer_dims.x * sizeof(QRgb);
-    uchar* wall_framebuffer_framebuffer_data = (uchar*) _aligned_malloc(wall_framebuffer_framebuffer_data_size, 64);
-    wall_framebuffer = QImage(
-        wall_framebuffer_framebuffer_data,
-        framebuffer_dims.y,
-        framebuffer_dims.x,
-        QImage::Format::Format_ARGB32,
-        [](void* data) {
-            _aligned_free(data);
-        }, wall_framebuffer_framebuffer_data
+            myaligned_free(data);
+        }, framebuffer_data
     );
 
     // mode
     setMode(Mode::NotPlaying);
-
-    // editor
-    // QGridLayout* editor_layout = new QGridLayout();
-    // editor_layout->setParent(this->centralWidget()->layout());
-    // editor_layout->setGeometry(QRect(0, height() / 2, width() / 2, height() / 2));
-    // editor_layout->setSizeConstraint(QLayout::SizeConstraint::SetFixedSize);
-    // editor_layout->addWidget(map_editor_view, 0, 0);
-
-    // QMenu* cubmap_editor = menuBar()->addMenu("CubMap editor");
-    // QAction* cubmap_editor_open_act = new QAction("&Edit", map_editor_view);
-    // connect(
-    //     cubmap_editor_open_act, &QAction::triggered,
-    //     map_editor_view, [=](){
-    //         map_editor_view->show();
-    //     }
-    // );
-    // cubmap_editor->addAction(cubmap_editor_open_act);
 }
 
 Renderer_Widget::~Renderer_Widget() {
@@ -163,78 +123,15 @@ void Renderer_Widget::keyReleaseEvent(QKeyEvent *event) {
     }
 }
 
-void Renderer_Widget::mouseMoveEvent(QMouseEvent* event) {
-}
-
 void Renderer_Widget::closeEvent(QCloseEvent* event) {
     this->is_alive = false;
 }
 
-// note: assumes premultiplied alpha for src
-static void copyRotatedImage(QImage* dest, QImage* src) {
-    v2<u32> src_dims(src->width(), src->height());
-    v2<u32> dest_dims(dest->width(), dest->height());
-    assert(src_dims.x == dest_dims.y && src_dims.y == dest_dims.x && "for now no interpolation for scaled images");
-    QRgb* src_raw = reinterpret_cast<QRgb*>(src->bits());
-    QRgb* dest_raw = reinterpret_cast<QRgb*>(dest->bits());
-    u32 dest_col = 0;
-    u32 dest_row = 0;
-    u32 src_col = 0;
-    u32 src_row = 0;
-
-    constexpr u32 cache_line_size = 64;
-    constexpr u32 block_size = cache_line_size / sizeof(QRgb);
-    assert(
-        dest_dims.x % block_size == 0 && dest_dims.y % block_size == 0 &&
-        src_dims.x % block_size == 0 && src_dims.y % block_size == 0
-    );
-    // note: copy the rotated src Image into dest buffer by blocks
-    while (src_row < src_dims.y) {
-        src_col = 0;
-        dest_row = 0;
-        u64 cur_cy = __rdtsc();
-        while (src_col < src_dims.x) {
-            for (u32 j = 0; j < block_size; ++j) {
-                u32 cur_src_col = src_col + j;
-                u32 cur_dest_row = dest_row + j;
-                
-                for (u32 i = 0; i < block_size; ++i) {
-                    u32 cur_src_row = src_row + i;
-                    u32 cur_dest_col = dest_col + i;
-
-                    QRgb* dest = dest_raw + cur_dest_row * dest_dims.x + cur_dest_col;
-                    QRgb* src = src_raw + cur_src_row * src_dims.x + cur_src_col;
-                    r32 alpha = (1.0f - (r32) qAlpha(*src) / 255.0f);
-                    i32 destRed = qRed(*dest);
-                    i32 destGreen = qGreen(*dest);
-                    i32 destBlue = qBlue(*dest);
-                    i32 srcRed = qRed(*src);
-                    i32 srcGreen = qGreen(*src);
-                    i32 srcBlue = qBlue(*src);
-                    // note: no alpha premultiplication from here on as the whole routine consists of two framebuffers
-                    *dest =  qRgba(
-                        destRed * alpha + srcRed,
-                        destGreen * alpha + srcGreen,
-                        destBlue * alpha + srcBlue,
-                        0xff
-                    );
-                }
-            }
-            src_col += block_size;
-            dest_row += block_size;
-        }
-        dest_col += block_size;
-        src_row += block_size;
-    }
-}
-
 void Renderer_Widget::paintEvent(QPaintEvent* event) {
-    copyRotatedImage(&floor_ceiling_framebuffer, &wall_framebuffer);
-
     QRect target_rec(0, 0, this->width(), this->height());
     QPainter painter(this);
 
-    painter.drawImage(target_rec, floor_ceiling_framebuffer, QRect(0, 0, floor_ceiling_framebuffer.width(), floor_ceiling_framebuffer.height()));
+    painter.drawImage(target_rec, framebuffer, QRect(0, 0, framebuffer.width(), framebuffer.height()));
 
     // note: draw crosshair
     v2<i32> crosshair_offset(target_rec.x() / 80, target_rec.y() / 460);
@@ -335,7 +232,7 @@ void Renderer_Widget::updateOrientation() {
 }
 
 void Renderer_Widget::updateAndRender(r32 dt) {
-    // LOG("dt(s): " << dt);
+    LOG("dt(s): " << dt);
 
     if (mode == Mode::Playing) {
         updateOrientation();
@@ -346,24 +243,13 @@ void Renderer_Widget::updateAndRender(r32 dt) {
     this->update(); // calls paintEvent
 }
 
-static inline int bitCount(i32 x) {
-    if (x == 0) {
-        return 0;
-    }
-    return 1 + bitCount(x & (x - 1));
-}
-
-static inline bool isPowOf2(i32 x) {
-    return bitCount(x) == 1;
-}
-
 void Renderer_Widget::updateFloorAndCeiling() {
     QRgb* floor_text_raw = reinterpret_cast<QRgb*>(floor_tex.bits());
     QRgb* ceiling_text_raw = reinterpret_cast<QRgb*>(ceiling_tex.bits());
-    QRgb* floor_ceiling_framebuffer_raw = reinterpret_cast<QRgb*>(floor_ceiling_framebuffer.bits());
+    QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
+    v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height()); 
     v2<i32> floor_tex_dims(floor_tex.width(), floor_tex.height());
     v2<i32> ceiling_tex_dims(ceiling_tex.width(), ceiling_tex.height());
-    v2<i32> floor_ceiling_framebuffer_dims(floor_ceiling_framebuffer.width(), floor_ceiling_framebuffer.height()); 
 
     // note: assumptions taken
     assert(
@@ -385,15 +271,15 @@ void Renderer_Widget::updateFloorAndCeiling() {
     __m128i ceiling_tex_x_dim_m128i_minus_1 = _mm_set1_epi32(ceiling_tex_dims.x - 1);
     __m128i ceiling_tex_y_dim_m128i_minus_1 = _mm_set1_epi32(ceiling_tex_dims.y - 1);
 
-    for (i32 row = floor_ceiling_framebuffer_dims.y - 1; row > floor_ceiling_framebuffer_dims.y / 2; --row) {
-        r32 row_distance = ((r32) floor_ceiling_framebuffer_dims.y / 2.0f) / ((r32) row - (r32) floor_ceiling_framebuffer_dims.y / 2.0f);
-        r32 tex_step_x = row_distance * 2.0f * _map_model->camera.plane.x / (r32) floor_ceiling_framebuffer_dims.x;
-        r32 tex_step_y = row_distance * 2.0f * _map_model->camera.plane.y / (r32) floor_ceiling_framebuffer_dims.x;
+    for (i32 row = framebuffer_dims.y - 1; row > framebuffer_dims.y / 2; --row) {
+        r32 row_distance = ((r32) framebuffer_dims.y / 2.0f) / ((r32) row - (r32) framebuffer_dims.y / 2.0f);
+        r32 tex_step_x = row_distance * 2.0f * _map_model->camera.plane.x / (r32) framebuffer_dims.x;
+        r32 tex_step_y = row_distance * 2.0f * _map_model->camera.plane.y / (r32) framebuffer_dims.x;
         __m128 tex_step_x_m128 = _mm_set1_ps(tex_step_x);
         __m128 tex_step_y_m128 = _mm_set1_ps(tex_step_y);
 
-        QRgb* framebuffer_floor_scanline = floor_ceiling_framebuffer_raw + row * floor_ceiling_framebuffer_dims.x;
-        QRgb* framebuffer_ceiling_scanline = floor_ceiling_framebuffer_raw + (floor_ceiling_framebuffer_dims.y - row - 1) * floor_ceiling_framebuffer_dims.x;
+        QRgb* framebuffer_floor_scanline = framebuffer_raw + row * framebuffer_dims.x;
+        QRgb* framebuffer_ceiling_scanline = framebuffer_raw + (framebuffer_dims.y - row - 1) * framebuffer_dims.x;
 
         r32 tex_x = _map_model->camera.p.x + row_distance * (_map_model->camera.dir.x - _map_model->camera.plane.x);
         r32 tex_y = _map_model->camera.p.y + row_distance * (_map_model->camera.dir.y - _map_model->camera.plane.y);
@@ -417,7 +303,7 @@ void Renderer_Widget::updateFloorAndCeiling() {
         }
 
         i32 col = 0;
-        for (; col + 16 <= floor_ceiling_framebuffer_dims.x; col += 16) {
+        for (; col + 16 <= framebuffer_dims.x; col += 16) {
             __m128i floors[4];
             __m128i ceilings[4];
             for (u32 i = 0; i < 4; ++i) {
@@ -461,7 +347,7 @@ void Renderer_Widget::updateFloorAndCeiling() {
 
         tex_x = _mm_cvtss_f32(tex_x_m128_4[3]);
         tex_y = _mm_cvtss_f32(tex_y_m128_4[3]);
-        for (; col < floor_ceiling_framebuffer_dims.x; ++col) {
+        for (; col < framebuffer_dims.x; ++col) {
             i32 floor = ((((i32) ((r32) floor_tex_dims.y * tex_y)) & (floor_tex_dims.y - 1)) *
                 floor_tex_dims.x) + (((i32) ((r32) floor_tex_dims.x * tex_y)) & (floor_tex_dims.x - 1));
             i32 ceiling = ((((i32) ((r32) ceiling_tex_dims.y * tex_y)) & (ceiling_tex_dims.y - 1)) *
@@ -480,15 +366,12 @@ void Renderer_Widget::updateWall() {
         Horizontal
     };
 
-    QRgb* floor_ceiling_framebuffer_raw = reinterpret_cast<QRgb*>(wall_framebuffer.bits());
-    v2<i32> framebuffer_bits_dims(wall_framebuffer.width(), wall_framebuffer.height());
-    v2<i32> renderer_dims(framebuffer_bits_dims.y, framebuffer_bits_dims.x);
+    QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
+    v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height());
 
-    // note: clear alpha channel and do an alpha premultply essentially
-    memset(floor_ceiling_framebuffer_raw, 0, framebuffer_bits_dims.x * framebuffer_bits_dims.y * sizeof(*floor_ceiling_framebuffer_raw));
-
-    for (i32 col = 0; col < renderer_dims.x; ++col) {
-        r32 camera_x = 2.0 * (r32) col / (r32) renderer_dims.x - 1.0f;
+    u64 tot_inner_ts = 0;
+    for (i32 col = 0; col < framebuffer_dims.x; ++col) {
+        r32 camera_x = 2.0 * (r32) col / (r32) framebuffer_dims.x - 1.0f;
         v2<r32> raydir = _map_model->camera.dir + _map_model->camera.plane * camera_x;
         v2<r32> camera_p = _map_model->camera.p;
         v2<i32> map_p((i32) camera_p.x, (i32) camera_p.y);
@@ -543,10 +426,10 @@ void Renderer_Widget::updateWall() {
         } else {
             perp_wall_dist = side_dist.y - delta_dist.y;
         }
-        r32 line_height = (i32) ((r32) renderer_dims.y / perp_wall_dist);
+        r32 line_height = (i32) ((r32) framebuffer_dims.y / perp_wall_dist);
         v2<i32> vertical_draw_interval_clamped(
-            clamp_value(0, (i32) (((r32) renderer_dims.y - line_height) / 2.0f), renderer_dims.y - 1),
-            clamp_value(0, (i32) (((r32) renderer_dims.y + line_height) / 2.0f), renderer_dims.y - 1)
+            clamp_value(0, (i32) (((r32) framebuffer_dims.y - line_height) / 2.0f), framebuffer_dims.y - 1),
+            clamp_value(0, (i32) (((r32) framebuffer_dims.y + line_height) / 2.0f), framebuffer_dims.y - 1)
         );
 
         WallTexId wall_tex_id;
@@ -577,7 +460,7 @@ void Renderer_Widget::updateWall() {
         wall_tex_x -= floor(wall_tex_x);
 
         r32 tex_step = (r32) text_dims.y / line_height;
-	    r32 tex_p = (vertical_draw_interval_clamped.x + (line_height - (r32) renderer_dims.y) / 2.0f) * tex_step;
+	    r32 tex_p = (vertical_draw_interval_clamped.x + (line_height - (r32) framebuffer_dims.y) / 2.0f) * tex_step;
 
         i32 tex_start_offset_x = wall_tex_x * (r32) text_dims.x;
         if ((side == Side::Horizontal && raydir.x > 0.0f) ||
@@ -586,7 +469,7 @@ void Renderer_Widget::updateWall() {
             tex_start_offset_x = text_dims.x - tex_start_offset_x - 1;
         }
 
-        // u64 _inner_sub = __rdtsc();
+        u64 _inner_sub = __rdtsc();
         i32 vertical_stripe_length = vertical_draw_interval_clamped.y - vertical_draw_interval_clamped.x;
         i32 row = 0;
         for (; row + 8 <= vertical_stripe_length; row += 8) {
@@ -602,14 +485,14 @@ void Renderer_Widget::updateWall() {
             i32 tex_start_offset_y_8 = ((i32) (tex_p + 7.0f * tex_step)) & (text_dims.y - 1);
             tex_p += 8.0f * tex_step;
 
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 1] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_2];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 2] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_3];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 3] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_4];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 4] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_5];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 5] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_6];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 6] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_7];
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row + 7] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_8];
+            framebuffer_raw[(cur_row + 0) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
+            framebuffer_raw[(cur_row + 1) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_2];
+            framebuffer_raw[(cur_row + 2) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_3];
+            framebuffer_raw[(cur_row + 3) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_4];
+            framebuffer_raw[(cur_row + 4) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_5];
+            framebuffer_raw[(cur_row + 5) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_6];
+            framebuffer_raw[(cur_row + 6) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_7];
+            framebuffer_raw[(cur_row + 7) * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y_8];
         }
         for (; row < vertical_stripe_length; ++row) {
             i32 cur_row = row + vertical_draw_interval_clamped.x;
@@ -617,7 +500,9 @@ void Renderer_Widget::updateWall() {
             i32 tex_start_offset_y = ((i32) tex_p) & (text_dims.y - 1);
             tex_p += tex_step;
 
-            floor_ceiling_framebuffer_raw[col * framebuffer_bits_dims.x + cur_row] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
+            framebuffer_raw[cur_row * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
         }
+        tot_inner_ts += __rdtsc() - _inner_sub;
     }
+    LOG("Cy(M) tot_inner_ts: " << tot_inner_ts / 1000000.0);
 }

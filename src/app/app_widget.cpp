@@ -7,6 +7,8 @@
 #include <QPushButton>
 #include <QAction>
 #include <QPixmap>
+#include <QFileDialog>
+#include <QMessageBox>
 
 static inline void setWidgetGeometry(const QWidget* parent, QWidget* child, v2<r32> normalized_top_left_p, v2<r32> normalized_bot_right_p) {
     QRect parent_rect = parent->geometry();
@@ -26,12 +28,12 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
     menu_bar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     app_layout->addWidget(menu_bar, 0, 0);
 
-    QMenu* file_menu = menu_bar->addMenu(QIcon(QPixmap("../assets/FileIcon.png")), "File");
+    QMenu* file_menu = menu_bar->addMenu(QIcon(QPixmap("../Cub3d/assets/FileIcon.png")), "File");
     file_menu->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
     QPushButton* close_editor = new QPushButton(this);
     app_layout->addWidget(close_editor, 0, 2);
-    close_editor->setIcon(QIcon(QPixmap("../assets/CloseIcon.png")));
+    close_editor->setIcon(QIcon(QPixmap("../Cub3d/assets/CloseIcon.png")));
     close_editor->setGeometry(QRect(0, 0, 20, 20));
     close_editor->hide();
     QAction* close_action = new QAction(_editor);
@@ -59,6 +61,48 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
             _editor->show();
         }
     );
+
+    QAction* load_map_action = new QAction("Load map from file", file_menu);
+    file_menu->addAction(load_map_action);
+    connect(
+        load_map_action, &QAction::triggered,
+        this, [this]() {
+            QString openedFileName = QFileDialog::getOpenFileName(
+                this,
+                "Open Cub Map",
+                "",
+                "Cub map file (*cub)"
+            );
+            if (openedFileName.isEmpty() == false) {
+                try {
+                    _map_model->readMap(openedFileName.toStdString());
+                } catch (const std::exception& err) {
+                    QMessageBox::information(this, "Error during loading the map", err.what());
+                }
+            }
+        }
+    );
+    
+    QAction* save_map_action = new QAction("Save map to file", file_menu);
+    file_menu->addAction(save_map_action);
+    connect(
+        save_map_action, &QAction::triggered,
+        this, [this]() {
+            QString savedFileName = QFileDialog::getSaveFileName(
+                this,
+                "Save Cub Map",
+                "",
+                "Cub map file (*.cub)"
+            );
+            if (savedFileName.isEmpty() == false) {
+                try {
+                    _map_model->saveMap(savedFileName.toStdString());
+                } catch (const std::exception& err) {
+                    QMessageBox::information(this, "Error during saving the map", err.what());
+                }
+            }
+        }
+    );
 }
 
 void App_Widget::initializeAppLayout(v2<u32> dims) {
@@ -73,15 +117,21 @@ void App_Widget::initializeAppLayout(v2<u32> dims) {
     _editor->hide();
 }
 
-App_Widget::App_Widget(v2<u32> dims, Renderer_Widget* renderer, Map_Editor_Mvc* editor)
-    : _renderer(renderer),
-    _editor(editor) {
+App_Widget::App_Widget(v2<u32> dims, Map_Model* map_model)
+    : _map_model(map_model),
+    _renderer(new Renderer_Widget(map_model)),
+    _editor(new Map_Editor_Mvc(map_model)) {
 
     _is_alive = true;
 
     setGeometry(0, 0, dims.x, dims.y);
 
     initializeAppLayout(dims);
+}
+
+App_Widget::~App_Widget() {
+    delete _renderer;
+    delete _editor;
 }
 
 void App_Widget::exec() {

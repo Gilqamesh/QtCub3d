@@ -84,6 +84,10 @@
         "qopenglwidget": "cpp",
         "qobject": "cpp",
         "qgridlayout": "cpp",
-        "qeventloop": "cpp"
+        "qeventloop": "cpp",
+        "deque": "cpp",
+        "queue": "cpp",
+        "qlayout": "cpp",
+        "filesystem": "cpp"
     }
 }

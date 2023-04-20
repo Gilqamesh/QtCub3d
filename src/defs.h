@@ -25,7 +25,10 @@ typedef double r64;
 
 #include <string>
 
+#include <intrin.h>
 #include <emmintrin.h>
+#include <xmmintrin.h>
+#include <smmintrin.h>
 
 #include "v2.h"
 

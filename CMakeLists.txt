@@ -15,12 +15,13 @@ find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 
 set(PROJECT_SOURCES
     src/main.cpp
+    src/utils.h
     src/renderer_widget.cpp src/renderer_widget.h src/renderer_widget.ui
     src/defs.h
-    src/clamp.h
     src/camera.h src/camera.cpp
-    src/app/app_widget.cpp src/app/app_widget.cpp
-    src/mvcs/map/map_model.cpp src/mvcs/map/map_model.cpp
+    src/app/app_widget.cpp src/app/app_widget.h
+    src/app/app_layout.cpp src/app/app_layout.h
+    src/mvcs/map/map_model.cpp src/mvcs/map/map_model.h
     src/mvcs/map_editor/map_editor_mvc.h src/mvcs/map_editor/map_editor_mvc.cpp
     src/mvcs/map_editor/map_editor_view.h src/mvcs/map_editor/map_editor_view.cpp
     src/mvcs/map_editor/map_editor_delegate.h src/mvcs/map_editor/map_editor_delegate.cpp

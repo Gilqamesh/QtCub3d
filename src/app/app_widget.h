@@ -7,10 +7,12 @@
 
 #include "../mvcs/map_editor/map_editor_mvc.h"
 #include "../renderer_widget.h"
+#include "../mvcs/map/map_model.h"
 
 class App_Widget: public QWidget {
 public:
-    App_Widget(v2<u32> dims, Renderer_Widget* renderer, Map_Editor_Mvc* editor);
+    App_Widget(v2<u32> dims, Map_Model* map_model);
+    ~App_Widget();
 
     void exec();
 
@@ -23,8 +25,9 @@ private:
     void initializeMenuBar(QGridLayout* app_layout);
 
 private:
-    Renderer_Widget* _renderer;
-    Map_Editor_Mvc* _editor;
+    Map_Model* _map_model;
+    Renderer_Widget *_renderer;
+    Map_Editor_Mvc *_editor;
 
     bool _is_alive;
 

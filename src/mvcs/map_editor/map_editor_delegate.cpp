@@ -1,8 +1,8 @@
 #include "map_editor_delegate.h"
-#include "../map/map_model.h"
 
 #include <QPainter>
 #include <QEvent>
+#include <QMouseEvent>
 
 bool Map_Editor_Delegate::tryToConvert(const QModelIndex& index, Map_Model::Cell& value, i32 role) const {
     bool conversion_result;
@@ -12,6 +12,8 @@ bool Map_Editor_Delegate::tryToConvert(const QModelIndex& index, Map_Model::Cell
 
 Map_Editor_Delegate::Map_Editor_Delegate(QObject *parent)
     : QAbstractItemDelegate(parent) {
+    is_mouse_down = false;
+    is_valid = false;
 }
 
 void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
@@ -44,17 +46,32 @@ QSize Map_Editor_Delegate::sizeHint(const QStyleOptionViewItem &option, const QM
 
 bool Map_Editor_Delegate::editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option, const QModelIndex &index) {
     switch (event->type()) {
-        case QEvent::MouseButtonDblClick: {
-            Map_Model::Cell cell_value;
-            if (tryToConvert(index, cell_value, Qt::EditRole) == false) {
-                LOG("Failed to convert in 'editorEvent' " << index.row() << " " << index.column());
+        case QEvent::MouseButtonPress: {
+            QMouseEvent* m_event = dynamic_cast<QMouseEvent*>(event);
+            if (m_event->buttons() & Qt::LeftButton) {
+                is_mouse_down = true;
+                if (tryToConvert(index, new_cell_value, Qt::EditRole) == false) {
+                    is_valid = false;
+                    return false;
+                }
+                if (new_cell_value == Map_Model::Cell::Empty) {
+                    new_cell_value = Map_Model::Cell::Wall;
+                } else if (new_cell_value == Map_Model::Cell::Wall) {
+                    new_cell_value = Map_Model::Cell::Empty;
+                }
+                is_valid = true;
             }
-            if (cell_value == Map_Model::Cell::Empty) {
-                cell_value = Map_Model::Cell::Wall;
-            } else if (cell_value == Map_Model::Cell::Wall) {
-                cell_value = Map_Model::Cell::Empty;
+        } break ;
+        case QEvent::MouseButtonRelease: {
+            QMouseEvent* m_event = dynamic_cast<QMouseEvent*>(event);
+            if (m_event->buttons() & Qt::LeftButton) {
+                is_mouse_down = false;
             }
-            reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), cell_value);
+        } break ;
+        case QEvent::MouseMove: {
+            if (is_mouse_down && is_valid) {
+                return reinterpret_cast<Map_Model*>(model)->setData(index.column(), index.row(), new_cell_value);
+            }
             return true;
         } break ;
         default: {

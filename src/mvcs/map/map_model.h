@@ -29,6 +29,9 @@ public:
         Wall
     };
 
+    void readMap(const std::string& cubmap_filepath);
+    void saveMap(const std::string& cubmap_filepath);
+
     Cell getData(u32 col, u32 row) const;
     u32 rowCount() const;
     u32 colCount() const;
@@ -42,10 +45,13 @@ public:
 
 private:
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
-    bool isMapValid() const;
+    bool isMapEnclosed(const std::vector<std::vector<Cell>>& m) const;
 
     virtual int rowCount(const QModelIndex &parent) const override;
     virtual int columnCount(const QModelIndex &parent) const override;
+
+    Cell charToCell(char c) const;
+    char cellToChar(Cell cell) const;
 
 private:
     std::vector<std::vector<Cell>> cells;
