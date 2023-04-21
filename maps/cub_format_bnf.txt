@@ -1,5 +1,5 @@
-<file> ::= <line> <line> <line> <line> <line> <line> (<newline>)* <map-definition> (<newline>)*
-<line> ::= <texture-id> " " <texture-path> "\n"
+<file> ::= <texture-line> <texture-line> <texture-line> <texture-line> <texture-line> <texture-line> (<newline>)* <map-definition> (<newline>)*
+<texture-line> ::= <texture-id> " " <texture-path> "\n"
 <texture-id> ::= "NO" | "SO" | "EA" | "WE" | "F" | "C"
 <texture-path> ::= <string>
 <map-definition> ::= <wall-row> <map-row>* <wall-row>
