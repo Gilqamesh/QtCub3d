@@ -32,8 +32,4 @@ typedef double r64;
 
 #include "v2.h"
 
-static inline std::string projectDir() {
-    return "../Cub3d/";
-}
-
 #endif // DEFS_H

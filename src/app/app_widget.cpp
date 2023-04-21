@@ -32,7 +32,7 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
     menu_bar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     app_layout->addWidget(menu_bar, 0, 0);
 
-    QMenu* file_menu = menu_bar->addMenu(QIcon(QPixmap("../Cub3d/assets/FileIcon.png")), "File");
+    QMenu* file_menu = menu_bar->addMenu(QIcon(QPixmap(PROJECT_DIR"assets/FileIcon.png")), "File");
     file_menu->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
     QCheckBox* check_box_center_editor = new QCheckBox(this);
@@ -67,7 +67,7 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
 
     QPushButton* push_button_close_editor = new QPushButton(this);
     app_layout->addWidget(push_button_close_editor, 0, 2);
-    push_button_close_editor->setIcon(QIcon(QPixmap("../Cub3d/assets/CloseIcon.png")));
+    push_button_close_editor->setIcon(QIcon(QPixmap(PROJECT_DIR"assets/CloseIcon.png")));
     push_button_close_editor->setText("Close editor");
     push_button_close_editor->setGeometry(QRect(0, 0, 20, 20));
     push_button_close_editor->hide();

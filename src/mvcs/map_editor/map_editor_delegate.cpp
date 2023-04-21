@@ -15,12 +15,12 @@ Map_Editor_Delegate::Map_Editor_Delegate(QObject *parent)
     is_mouse_down = false;
     is_cell_valid = false;
 
-    std::string wall_tex_path = projectDir() + "assets/WallIcon.png";
+    std::string wall_tex_path = PROJECT_DIR"assets/WallIcon.png";
     wall_tex = QImage(wall_tex_path.c_str());
     if (wall_tex.isNull()) {
         throw std::runtime_error("failed to load wall_tex_path: " + wall_tex_path);
     }
-    std::string player_tex_path = projectDir() + "assets/PlayerIcon";
+    std::string player_tex_path = PROJECT_DIR"assets/PlayerIcon";
     player_tex = QImage(player_tex_path.c_str());
     if (player_tex.isNull()) {
         throw std::runtime_error("failed to load player_tex_path: " + player_tex_path);

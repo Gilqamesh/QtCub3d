@@ -1,9 +1,9 @@
-NO ../Cub3d/assets/North.jpg
-SO ../Cub3d/assets/South.jpg
-WE ../Cub3d/assets/West.jpg
-EA ../Cub3d/assets/East.jpg
-F ../Cub3d/assets/Floor.jpg
-C ../Cub3d/assets/Ceiling.jpg
+NO North.jpg
+SO South.jpg
+WE West.jpg
+EA East.jpg
+F Floor.jpg
+C Ceiling.jpg
 
 
 

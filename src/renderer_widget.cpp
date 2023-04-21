@@ -14,7 +14,7 @@ Renderer_Widget::Renderer_Widget(Map_Model* map_model)
     is_alive = true;
 
     // note: texture loading
-    std::string gun_tex_path(projectDir() + "assets/GunPov.png");
+    std::string gun_tex_path(PROJECT_DIR"assets/GunPov.png");
     gun_tex = QImage(gun_tex_path.c_str());
     if (gun_tex.isNull()) {
         throw std::runtime_error("failed to load gun_tex_path: " + gun_tex_path);
@@ -217,7 +217,7 @@ void Renderer_Widget::updateOrientation() {
 }
 
 void Renderer_Widget::updateAndRender(r32 dt) {
-    LOG("dt(s): " << dt);
+    // LOG("dt(s): " << dt);
 
     if (mode == Mode::Playing) {
         updateOrientation();
