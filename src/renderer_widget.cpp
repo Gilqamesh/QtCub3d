@@ -503,17 +503,13 @@ void Renderer_Widget::drawMinimap() {
 
     v2<i32> grid_center_index(grid_count.x / 2, grid_count.y / 2);
     v2<i32> map_center_index((i32) _map_model->camera.p.x, (i32) _map_model->camera.p.y);
-    v2<r32> map_offset(
-        (1.0f - (_map_model->camera.p.x - floor(_map_model->camera.p.x))) * (r32) grid_dims.x,
-        (1.0f - (_map_model->camera.p.y - floor(_map_model->camera.p.y))) * (r32) grid_dims.y
-    );
     v2<i32> map_index = map_center_index - grid_center_index;
-    v2<i32> grid_index(-1, -1);
+    v2<i32> grid_index(0, 0);
     v2<i32> cur_map_index = map_index;
-    while (grid_index.y <= grid_count.y) {
-        grid_index.x = -1;
+    while (grid_index.y < grid_count.y) {
+        grid_index.x = 0;
         cur_map_index.x = map_index.x;
-        while (grid_index.x <= grid_count.x) {
+        while (grid_index.x < grid_count.x) {
             QRgb color;
             if (cur_map_index.x >= 0 &&
                 cur_map_index.y >= 0 &&
@@ -537,13 +533,7 @@ void Renderer_Widget::drawMinimap() {
                 color = qRgb(255, 0, 0);
             }
             v2<i32> framebuffer_offset = minimap_offset + hadamard_product(grid_index, grid_dims);
-            v2<i32> framebuffer_offset_offset(
-                (r32) framebuffer_offset.x + map_offset.x,
-                (r32) framebuffer_offset.y + map_offset.y
-            );
-            framebuffer_offset_offset.x = clamp_value(minimap_offset.x, framebuffer_offset_offset.x, framebuffer_dims.x);
-            framebuffer_offset_offset.y = clamp_value(minimap_offset.y, framebuffer_offset_offset.y, minimap_dims.y);
-            drawRectangle(framebuffer_offset_offset, framebuffer_offset_offset + grid_dims, color);
+            drawRectangle(framebuffer_offset, framebuffer_offset + grid_dims, color);
             ++cur_map_index.x;
             ++grid_index.x;
         }
