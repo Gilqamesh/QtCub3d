@@ -16,6 +16,9 @@ Renderer_Widget::Renderer_Widget(Map_Model* map_model)
     // note: texture loading
     std::string gun_tex_path(projectDir() + "assets/GunPov.png");
     gun_tex = QImage(gun_tex_path.c_str());
+    if (gun_tex.isNull()) {
+        throw std::runtime_error("failed to load gun_tex_path: " + gun_tex_path);
+    }
 
     // note: input
     clearInputState();
@@ -125,7 +128,8 @@ void Renderer_Widget::paintEvent(QPaintEvent* event) {
     QRect target_rec(0, 0, this->width(), this->height());
     QPainter painter(this);
 
-    painter.drawImage(target_rec, framebuffer, QRect(0, 0, framebuffer.width(), framebuffer.height()));
+    painter.drawImage(target_rec, framebuffer);
+    drawGun(painter);
 }
 
 bool Renderer_Widget::isPWalkable(u32 x, u32 y) {
@@ -213,7 +217,7 @@ void Renderer_Widget::updateOrientation() {
 }
 
 void Renderer_Widget::updateAndRender(r32 dt) {
-    // LOG("dt(s): " << dt);
+    LOG("dt(s): " << dt);
 
     if (mode == Mode::Playing) {
         updateOrientation();
@@ -223,7 +227,6 @@ void Renderer_Widget::updateAndRender(r32 dt) {
     drawWall();
     drawMinimap();
     drawCrosshair();
-    drawGun();
     this->update(); // calls paintEvent
 }
 
@@ -565,34 +568,41 @@ void Renderer_Widget::drawCrosshair() {
     );
 }
 
-void Renderer_Widget::drawGun() {
+void Renderer_Widget::drawGun(QPainter& painter) {
+    v2<i32> dims(width(), height());
+    v2<i32> gun_dims(dims.x / 4, dims.y / 3);
+    v2<i32> gun_offset((dims.x - gun_dims.x) / 2, dims.y - gun_dims.y);
+    painter.drawImage(
+        QRect(gun_offset.x, gun_offset.y, gun_dims.x, gun_dims.y),
+        gun_tex
+    );
 }
 
-void Renderer_Widget::drawRectangle(v2<i32> topLeft, v2<i32> botRight, QRgb color) {
+void Renderer_Widget::drawRectangle(v2<i32> top_left, v2<i32> bot_right, QRgb color) {
     QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
     v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height());
 
     assert(framebuffer_dims.x > 0 && framebuffer_dims.y > 0);
-    assert(botRight.x >= topLeft.x);
-    assert(botRight.y >= topLeft.y);
+    assert(bot_right.x >= top_left.x);
+    assert(bot_right.y >= top_left.y);
 
-    topLeft.x = clamp_value(0, topLeft.x, framebuffer_dims.x - 1);
-    topLeft.y = clamp_value(0, topLeft.y, framebuffer_dims.y - 1);
-    botRight.x = clamp_value(0, botRight.x, framebuffer_dims.x - 1);
-    botRight.y = clamp_value(0, botRight.y, framebuffer_dims.y - 1);
+    top_left.x = clamp_value(0, top_left.x, framebuffer_dims.x - 1);
+    top_left.y = clamp_value(0, top_left.y, framebuffer_dims.y - 1);
+    bot_right.x = clamp_value(0, bot_right.x, framebuffer_dims.x - 1);
+    bot_right.y = clamp_value(0, bot_right.y, framebuffer_dims.y - 1);
 
     // todo: optimize
     u32 framebuffer_stride = framebuffer_dims.x;
-    framebuffer_raw += topLeft.y * framebuffer_stride + topLeft.x;
-    while (topLeft.y <= botRight.y) {
+    framebuffer_raw += top_left.y * framebuffer_stride + top_left.x;
+    while (top_left.y <= bot_right.y) {
         QRgb* out = framebuffer_raw;
-        i32 curTopLeft = topLeft.x;
-        while (curTopLeft <= botRight.x) {
+        i32 cur_top_left_x = top_left.x;
+        while (cur_top_left_x <= bot_right.x) {
             *out = color;
             ++out;
-            ++curTopLeft;
+            ++cur_top_left_x;
         }
         framebuffer_raw += framebuffer_stride;
-        ++topLeft.y;
+        ++top_left.y;
     }
 }

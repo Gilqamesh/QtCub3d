@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QCursor>
 #include <QImage>
+#include <QPainter>
 
 #include "defs.h"
 #include "camera.h"
@@ -63,11 +64,11 @@ private:
     void drawWall();
     void drawMinimap();
     void drawCrosshair();
-    void drawGun();
+    void drawGun(QPainter& painter);
 
     void setMode(Mode mode);
     void clearInputState();
-    void drawRectangle(v2<i32> topLeft, v2<i32> botRight, QRgb color);
+    void drawRectangle(v2<i32> top_left, v2<i32> bot_right, QRgb color);
 };
 
 #endif // RENDERER_WIDGET_H
