@@ -7,6 +7,7 @@
 
 #include <QSpinBox>
 #include <QStyledItemDelegate>
+#include <QImage>
 
 class Map_Editor_Delegate : public QAbstractItemDelegate {
 public:
@@ -23,6 +24,9 @@ private:
     bool is_mouse_down;
     bool is_cell_valid;
     Map_Model::Cell new_cell_value;
+
+    QImage wall_tex;
+    QImage player_tex;
 };
 
 #endif // MAP_EDITOR_DELEGATE_H

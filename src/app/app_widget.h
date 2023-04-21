@@ -5,7 +5,7 @@
 
 #include "../defs.h"
 
-#include "../mvcs/map_editor/map_editor_mvc.h"
+#include "../mvcs/map_editor/map_editor_view.h"
 #include "../renderer_widget.h"
 #include "../mvcs/map/map_model.h"
 
@@ -30,7 +30,7 @@ private:
 private:
     Map_Model* _map_model;
     Renderer_Widget *_renderer;
-    Map_Editor_Mvc *_editor;
+    Map_Editor_View *_editor;
 
     bool _is_alive;
 

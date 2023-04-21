@@ -46,6 +46,14 @@ v2<T> operator*(T s, v2<T> v) {
 }
 
 template <typename T>
+v2<T> hadamard_product(v2<T> v, v2<T> w) {
+    v.x *= w.x;
+    v.y *= w.y;
+    
+    return v;
+}
+
+template <typename T>
 v2<T> v2_normalize(v2<T> v) {
     return v * (static_cast<T>(1.0) / v2_length(v));
 }
@@ -75,6 +83,14 @@ template <typename T>
 v2<T> operator-(v2<T> v, v2<T> w) {
     v.x -= w.x;
     v.y -= w.y;
+
+    return v;
+}
+
+template <typename T>
+v2<T> operator/(v2<T> v, T x) {
+    v.x /= x;
+    v.y /= x;
 
     return v;
 }

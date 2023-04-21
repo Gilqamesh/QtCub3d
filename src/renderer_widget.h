@@ -34,6 +34,7 @@ private:
     Ui::Renderer_Widget* ui;
     Map_Model* _map_model;
     QImage framebuffer;
+    QImage gun_tex;
     bool is_alive;
 
     enum class Mode {
@@ -58,12 +59,15 @@ private:
     bool isPWalkable(u32 x, u32 y);
     void updatePosition(r32 dt);
     void updateOrientation();
-    void updateFloorAndCeiling();
-    void updateWall();
+    void drawFloorAndCeiling();
+    void drawWall();
+    void drawMinimap();
+    void drawCrosshair();
+    void drawGun();
 
     void setMode(Mode mode);
     void clearInputState();
-    void copyRotatedImage(QImage* dest, QImage* src);
+    void drawRectangle(v2<i32> topLeft, v2<i32> botRight, QRgb color);
 };
 
 #endif // RENDERER_WIDGET_H

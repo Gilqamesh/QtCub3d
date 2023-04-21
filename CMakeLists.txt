@@ -21,7 +21,6 @@ set(PROJECT_SOURCES
     src/camera.h src/camera.cpp
     src/app/app_widget.cpp src/app/app_widget.h
     src/mvcs/map/map_model.cpp src/mvcs/map/map_model.h
-    src/mvcs/map_editor/map_editor_mvc.h src/mvcs/map_editor/map_editor_mvc.cpp
     src/mvcs/map_editor/map_editor_view.h src/mvcs/map_editor/map_editor_view.cpp
     src/mvcs/map_editor/map_editor_delegate.h src/mvcs/map_editor/map_editor_delegate.cpp
     src/mvcs/mvcs_defs.h

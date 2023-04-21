@@ -9,6 +9,8 @@
 #include <QPixmap>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QCheckBox>
+#include <QScrollBar>
 
 #include "../dialogs/newmapdialog.h"
 
@@ -33,17 +35,52 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
     QMenu* file_menu = menu_bar->addMenu(QIcon(QPixmap("../Cub3d/assets/FileIcon.png")), "File");
     file_menu->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 
-    QPushButton* close_editor = new QPushButton(this);
-    app_layout->addWidget(close_editor, 0, 2);
-    close_editor->setIcon(QIcon(QPixmap("../Cub3d/assets/CloseIcon.png")));
-    close_editor->setGeometry(QRect(0, 0, 20, 20));
-    close_editor->hide();
-    QAction* close_action = new QAction(_editor);
+    QCheckBox* check_box_center_editor = new QCheckBox(this);
+    app_layout->addWidget(check_box_center_editor, 0, 1);
+    app_layout->setGeometry(QRect(0, 0, 20, 20));
+    check_box_center_editor->setText("Center around player");
+    check_box_center_editor->setCheckState(Qt::Checked);
+    check_box_center_editor->hide();
+    auto center_around_player_lambda = [this](Map_Editor_View* editor, Map_Model* map_model) {
+        v2<i32> camera_p((i32) map_model->camera.p.x, map_model->camera.p.y);
+        editor->centerAround(map_model->index(camera_p.y, camera_p.x));
+        connect(
+            map_model, &Map_Model::cameraCellChanged,
+            editor, &Map_Editor_View::centerAround
+        );
+    };
+    center_around_player_lambda(_editor, _map_model);
     connect(
-        close_editor, &QPushButton::clicked,
-        _editor, [this, close_editor]() {
-            close_editor->hide();
+        check_box_center_editor, &QCheckBox::stateChanged,
+        _editor, [this, check_box_center_editor, center_around_player_lambda](int check_box_state) {
+            if (check_box_state == Qt::Unchecked) {
+                disconnect(
+                    _map_model, &Map_Model::cameraCellChanged,
+                    _editor, &Map_Editor_View::centerAround
+                );
+            } else if (check_box_state == Qt::Checked) {
+                center_around_player_lambda(_editor, _map_model);
+            }
+        }
+    );
+    check_box_center_editor->setCheckState(Qt::Checked);
+
+    QPushButton* push_button_close_editor = new QPushButton(this);
+    app_layout->addWidget(push_button_close_editor, 0, 2);
+    push_button_close_editor->setIcon(QIcon(QPixmap("../Cub3d/assets/CloseIcon.png")));
+    push_button_close_editor->setText("Close editor");
+    push_button_close_editor->setGeometry(QRect(0, 0, 20, 20));
+    push_button_close_editor->hide();
+    connect(
+        push_button_close_editor, &QPushButton::clicked,
+        _editor, [this, push_button_close_editor, check_box_center_editor, app_layout]() {
+            push_button_close_editor->hide();
+            check_box_center_editor->hide();
             _editor->hide();
+
+            app_layout->setColumnStretch(0, 1);
+            app_layout->setColumnStretch(1, 0);
+            app_layout->setColumnStretch(2, 0);
         }
     );
 
@@ -70,9 +107,14 @@ void App_Widget::initializeMenuBar(QGridLayout* app_layout) {
     file_menu->addAction(editor_open_action);
     connect(
         editor_open_action, &QAction::triggered,
-        _editor, [this, close_editor]() {
-            close_editor->show();
+        _editor, [this, push_button_close_editor, check_box_center_editor, app_layout]() {
+            push_button_close_editor->show();
+            check_box_center_editor->show();
             _editor->show();
+
+            app_layout->setColumnStretch(0, 5);
+            app_layout->setColumnStretch(1, 3);
+            app_layout->setColumnStretch(2, 2);
         }
     );
 
@@ -134,14 +176,18 @@ void App_Widget::initializeAppLayout(v2<u32> dims) {
     initializeMenuBar(app_layout);
 
     app_layout->addWidget(_renderer, 1, 0);
-    app_layout->addWidget(_editor, 1, 2);
+    app_layout->addWidget(_editor, 1, 1, 1, 2);
     _editor->hide();
+
+    app_layout->setColumnStretch(0, 1);
+    app_layout->setColumnStretch(1, 0);
+    app_layout->setColumnStretch(2, 0);
 }
 
 App_Widget::App_Widget(v2<u32> dims, Map_Model* map_model)
     : _map_model(map_model),
     _renderer(new Renderer_Widget(map_model)),
-    _editor(new Map_Editor_Mvc(map_model)) {
+    _editor(new Map_Editor_View(map_model)) {
 
     _is_alive = true;
 

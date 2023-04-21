@@ -428,6 +428,9 @@ bool Map_Model::setData(const QModelIndex &index, const QVariant &value, int rol
 
             return false;
         } else {
+            if (cell_value == Cell::Player) {
+                emit cameraCellChanged(index);
+            }
             emit dataChanged(index, index, {role});
 
             return true;

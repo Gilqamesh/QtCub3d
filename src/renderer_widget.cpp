@@ -13,6 +13,10 @@ Renderer_Widget::Renderer_Widget(Map_Model* map_model)
 
     is_alive = true;
 
+    // note: texture loading
+    std::string gun_tex_path(projectDir() + "assets/GunPov.png");
+    gun_tex = QImage(gun_tex_path.c_str());
+
     // note: input
     clearInputState();
 
@@ -122,20 +126,6 @@ void Renderer_Widget::paintEvent(QPaintEvent* event) {
     QPainter painter(this);
 
     painter.drawImage(target_rec, framebuffer, QRect(0, 0, framebuffer.width(), framebuffer.height()));
-
-    // note: draw crosshair
-    v2<i32> crosshair_offset(target_rec.x() / 80, target_rec.y() / 460);
-    v2<i32> crosshair_dims = crosshair_offset * 2;
-    painter.fillRect(
-        target_rec.x() / 2 - crosshair_offset.x, target_rec.y() / 2 - crosshair_offset.y,
-        crosshair_dims.x, crosshair_dims.y,
-        Qt::black
-    );
-    painter.fillRect(
-        target_rec.x() / 2 - crosshair_offset.y, target_rec.y() / 2 - crosshair_offset.x,
-        crosshair_dims.y, crosshair_dims.x,
-        Qt::black
-    );
 }
 
 bool Renderer_Widget::isPWalkable(u32 x, u32 y) {
@@ -154,7 +144,7 @@ void Renderer_Widget::updatePosition(r32 dt) {
         _map_model->camera.p.x,
         _map_model->camera.p.y
     );
-    r32 move_speed = 1.5f;
+    r32 move_speed = 2.5f;
     if (input_state[static_cast<u32>(InputKey::KEY_W)].is_down) {
         v2<r32> old_p = _map_model->camera.p;
         v2<r32> dp = v2_normalize(_map_model->camera.dir) * move_speed * dt;
@@ -229,12 +219,15 @@ void Renderer_Widget::updateAndRender(r32 dt) {
         updateOrientation();
         updatePosition(dt);
     }
-    updateFloorAndCeiling();
-    updateWall();
+    drawFloorAndCeiling();
+    drawWall();
+    drawMinimap();
+    drawCrosshair();
+    drawGun();
     this->update(); // calls paintEvent
 }
 
-void Renderer_Widget::updateFloorAndCeiling() {
+void Renderer_Widget::drawFloorAndCeiling() {
     QRgb* floor_text_raw = reinterpret_cast<QRgb*>(_map_model->floor_tex.bits());
     QRgb* ceiling_text_raw = reinterpret_cast<QRgb*>(_map_model->ceiling_tex.bits());
     QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
@@ -351,7 +344,7 @@ void Renderer_Widget::updateFloorAndCeiling() {
     }
 }
 
-void Renderer_Widget::updateWall() {
+void Renderer_Widget::drawWall() {
         enum class Side {
         Vertical,
         Horizontal
@@ -491,5 +484,115 @@ void Renderer_Widget::updateWall() {
 
             framebuffer_raw[cur_row * framebuffer_dims.x + col] = wall_bits[tex_start_offset_x * text_dims.y + tex_start_offset_y];
         }
+    }
+}
+
+void Renderer_Widget::drawMinimap() {
+    QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
+    v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height());
+
+    v2<i32> minimap_dims(framebuffer_dims.x / 6, framebuffer_dims.y / 3);
+    // note: top right
+    v2<i32> minimap_offset(framebuffer_dims.x - minimap_dims.x, 0);
+    v2<i32> grid_count(17, 13);
+    assert((grid_count.x & 1) == 1 && (grid_count.y & 1) == 1);
+    v2<i32> grid_dims(minimap_dims.x / grid_count.x, minimap_dims.y / grid_count.y);
+
+    v2<i32> grid_center_index(grid_count.x / 2, grid_count.y / 2);
+    v2<i32> map_center_index((i32) _map_model->camera.p.x, (i32) _map_model->camera.p.y);
+    v2<i32> map_index = map_center_index - grid_center_index;
+    v2<i32> grid_index(0, 0);
+    v2<i32> cur_max_index = map_index;
+    while (grid_index.y < grid_count.y) {
+        grid_index.x = 0;
+        cur_max_index.x = map_index.x;
+        while (grid_index.x < grid_count.x) {
+            QRgb color;
+            if (cur_max_index.x >= 0 &&
+                cur_max_index.y >= 0 &&
+                cur_max_index.x < (i32) _map_model->colCount() &&
+                cur_max_index.y < (i32) _map_model->rowCount()
+            ) {
+                Map_Model::Cell cell = _map_model->getData(cur_max_index.x, cur_max_index.y);
+                switch (cell) {
+                    case Map_Model::Cell::Empty: {
+                        color = qRgb(255, 255, 255);
+                    } break ;
+                    case Map_Model::Cell::Wall: {
+                        color = qRgb(0, 0, 0);
+                    } break ;
+                    case Map_Model::Cell::Player: {
+                        color = qRgb(0, 0, 255);
+                    } break ;
+                    default: assert(false && "not implemented");
+                }
+            } else {
+                color = qRgb(255, 0, 0);
+            }
+            v2<i32> framebuffer_offset = minimap_offset + hadamard_product(grid_index, grid_dims);
+            drawRectangle(framebuffer_offset, framebuffer_offset + grid_dims, color);
+            ++cur_max_index.x;
+            ++grid_index.x;
+        }
+        ++cur_max_index.y;
+        ++grid_index.y;
+    }
+}
+
+void Renderer_Widget::drawCrosshair() {
+    QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
+    v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height());
+
+    v2<i32> cross_hair_offset(framebuffer_dims.x / 80, framebuffer_dims.y / 460);
+    v2<i32> cross_hair_dims = cross_hair_offset * 2;
+
+    QRgb crosshair_color = qRgb(0, 0, 0);
+    // note: horizontal stripe
+    v2<i32> horizontal_stripe_offset = framebuffer_dims / 2 - cross_hair_offset;
+    v2<i32> horizontal_stripe_dims = cross_hair_dims;
+    drawRectangle(
+        horizontal_stripe_offset,
+        horizontal_stripe_offset + horizontal_stripe_dims,
+        crosshair_color
+    );
+    // note: vertical stripe
+    v2<i32> vertical_stripe_offset = v2<i32>(framebuffer_dims.x / 2 - cross_hair_offset.y, framebuffer_dims.y / 2 - cross_hair_offset.x);
+    v2<i32> vertical_stripe_dims = v2<i32>(cross_hair_dims.y, cross_hair_dims.x);
+    drawRectangle(
+        vertical_stripe_offset,
+        vertical_stripe_offset + vertical_stripe_dims,
+        crosshair_color
+    );
+}
+
+void Renderer_Widget::drawGun() {
+}
+
+void Renderer_Widget::drawRectangle(v2<i32> topLeft, v2<i32> botRight, QRgb color) {
+    QRgb* framebuffer_raw = reinterpret_cast<QRgb*>(framebuffer.bits());
+    v2<i32> framebuffer_dims(framebuffer.width(), framebuffer.height());
+
+    assert(framebuffer_dims.x > 0 && framebuffer_dims.y > 0);
+    assert(botRight.x >= topLeft.x);
+    assert(botRight.y >= topLeft.y);
+
+    topLeft.x = clamp_value(0, topLeft.x, framebuffer_dims.x - 1);
+    topLeft.y = clamp_value(0, topLeft.y, framebuffer_dims.y - 1);
+    botRight.x = clamp_value(0, botRight.x, framebuffer_dims.x - 1);
+    botRight.y = clamp_value(0, botRight.y, framebuffer_dims.y - 1);
+
+    // todo: optimize
+    u32 framebuffer_stride = framebuffer_dims.x;
+    framebuffer_raw += topLeft.y * framebuffer_stride + topLeft.x;
+    while (topLeft.y <= botRight.y) {
+        QRgb* out = framebuffer_raw;
+        i32 curTopLeft = topLeft.x;
+        while (curTopLeft <= botRight.x) {
+            *out = color;
+            ++out;
+            ++curTopLeft;
+        }
+        framebuffer_raw += framebuffer_stride;
+        ++topLeft.y;
     }
 }

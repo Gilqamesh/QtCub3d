@@ -14,6 +14,17 @@ Map_Editor_Delegate::Map_Editor_Delegate(QObject *parent)
     : QAbstractItemDelegate(parent) {
     is_mouse_down = false;
     is_cell_valid = false;
+
+    std::string wall_tex_path = projectDir() + "assets/WallIcon.png";
+    wall_tex = QImage(wall_tex_path.c_str());
+    if (wall_tex.isNull()) {
+        throw std::runtime_error("failed to load wall_tex_path: " + wall_tex_path);
+    }
+    std::string player_tex_path = projectDir() + "assets/PlayerIcon";
+    player_tex = QImage(player_tex_path.c_str());
+    if (player_tex.isNull()) {
+        throw std::runtime_error("failed to load player_tex_path: " + player_tex_path);
+    }
 }
 
 void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const {
@@ -29,10 +40,12 @@ void Map_Editor_Delegate::paint(QPainter *painter, const QStyleOptionViewItem &o
             painter->fillRect(option.rect, Qt::white);
         } break ;
         case Map_Model::Cell::Player: {
-            painter->fillRect(option.rect, Qt::red);
+            painter->drawImage(option.rect, player_tex);
+            // painter->fillRect(option.rect, Qt::red);
         } break ;
         case Map_Model::Cell::Wall: {
-            painter->fillRect(option.rect, Qt::blue);
+            painter->drawImage(option.rect, wall_tex);
+            // painter->fillRect(option.rect, Qt::blue);
         } break ;
         default: throw std::runtime_error("not implemented");
     }

@@ -11,6 +11,8 @@
 #include <vector>
 
 class Map_Model: public QAbstractTableModel {
+    Q_OBJECT
+
 public:
     enum class Cell {
         Empty,
@@ -38,6 +40,9 @@ public:
     virtual bool insertColumns(int column, int count, const QModelIndex &parent = QModelIndex());
     virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
     virtual bool removeColumns(int column, int count, const QModelIndex &parent = QModelIndex());
+
+signals:
+    void cameraCellChanged(const QModelIndex &index);
 
 public:
     // @brief keeps loaded texture files and defines an empty enclosed map with the supplied dimensions
