@@ -217,7 +217,7 @@ void Renderer_Widget::updateOrientation() {
 }
 
 void Renderer_Widget::updateAndRender(r32 dt) {
-    // LOG("dt(s): " << dt);
+//     LOG("dt(s): " << dt);
 
     if (mode == Mode::Playing) {
         updateOrientation();
