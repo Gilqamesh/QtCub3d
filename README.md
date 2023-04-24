@@ -9,8 +9,8 @@ Cub3d 42 project using Qt as a third party library
 
 ## Install
 
-- cmake
-- win64 installer in installer directory
+- cmake, Qt6 and Qt5 is required as a dependency
+- win64 installer in installer directory, no dependency is required
 
 ## Features
 
