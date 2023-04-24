@@ -479,7 +479,6 @@ void Map_Model::loadTextures(
     num_of_texture_files_to_parse += sizeof(cur_wall_textures) / sizeof(cur_wall_textures[0]); // walls
     ++num_of_texture_files_to_parse; // floor
     ++num_of_texture_files_to_parse; // ceil
-    const std::string assets_dir = PROJECT_DIR + std::string("assets/");
     while (num_of_texture_files_to_parse > 0) {
         if (!std::getline(ifs, line)) {
             throw std::runtime_error("unexpected end of file during texture loading");
@@ -490,7 +489,6 @@ void Map_Model::loadTextures(
         }
         std::string textureId(line.begin(), line.begin() + spaceIndex);
         std::string texturePath(line.begin() + spaceIndex + 1, line.end());
-        texturePath = assets_dir + texturePath;
         if (textureId == "NO") {
             if (cur_wall_textures[static_cast<u32>(WallTexId::North)].isNull() == false) {
                 throw std::runtime_error("duplicate north wall texture");
