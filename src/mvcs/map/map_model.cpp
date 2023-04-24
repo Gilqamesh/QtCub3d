@@ -34,10 +34,15 @@ void Map_Model::newMap(u32 width, u32 height) {
     cells.clear();
     cells = std::vector<std::vector<Cell>>(height, std::vector<Cell>(width, Cell::Empty));
     camera = Camera(
-        (r32) width / 2.0f + 0.5f,
-        (r32) height / 2.0f + 0.5f,
+        (r32) (width / 2) + 0.5f,
+        (r32) (height / 2) + 0.5f,
         camera.phi
     );
+    for (u32 row = 0; row < cells.size(); ++row) {
+        for (u32 col = 0; col < cells[row].size(); ++col) {
+            cells[row][col] = Cell::Empty;
+        }
+    }
     for (u32 row = 1; row < cells.size() - 1; ++row) {
         cells[row].back() = Cell::Wall;
         cells[row].front() = Cell::Wall;
